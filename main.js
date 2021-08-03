@@ -50,13 +50,13 @@ function Candle(){
 
   this.draw = function(candleWidth){
     fill(this.color);
-    stroke(0);
     line(this.wickTopCoords[0], this.wickTopCoords[1], this.wickTopCoords[0], this.wickTopCoords[1] + this.wickHeight);
     rect(this.leftTopCoords[0], this.leftTopCoords[1], candleWidth, this.height);
   }
 
 }
 
+//TODO just for debugging purposes this is a global variable
 let candle = [];
 
 function train(){
@@ -68,6 +68,7 @@ function train(){
   }
   let candleWidth = chartWidth / (historyLen + futureLen);
   candleWidth -= 2; // Create a gap of two pixels between every candle
+  stroke(0);
   for(let i = 0; i < candle.length; i++){
     candle[i].draw(candleWidth);
   }

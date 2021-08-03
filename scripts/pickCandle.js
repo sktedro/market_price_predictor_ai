@@ -1,8 +1,8 @@
 function pickCandle(data){
-  const minCandleHeight = 2;
-  const priceLegendItems = 5;
+  const minCandleHeight = 2; // Minimal height of one candle
+  const priceLegendItems = 5; // How many horizontal lines (prices) to draw as the price legend
   const horizontalLineColor = 100;
-  const timeLegendItems = 5;
+  const timeLegendItems = 5; // How many vertical lines (dates) to draw as the date&time legend
   const verticalLineColor = 100;
 
   if(data.length < 1){
@@ -46,32 +46,9 @@ function pickCandle(data){
     }
   }
 
-  // Get the lowest and highest price of the chosen candles
+  // Get the lowest and highest price from the chart
   let lowPrice = candle[0].data[cols.low];
   let highPrice = candle[0].data[cols.high];
-
-  let candleWidth = chartWidth / (historyLen + futureLen);
-
-  // Get the coordinates of the candles on the canvas
-  getCandleCoords(candle, candleWidth, minCandleHeight, lowPrice, highPrice);
-  
-  drawPriceLegend(priceLegendItems, lowPrice, highPrice, horizontalLineColor);
-  drawTimeLegend(timeLegendItems, candle, candleWidth, verticalLineColor);
-
-  return candle;
-}
-
-function pickLine(chart){
-  // Line index of the first usable candle
-  let startCandle = historyLen - 1; 
-  // Line index of the last usable candle
-  let endCandle = chart.length - futureLen;
-  // Returns line index
-  return Math.floor(Math.random(startCandle / endCandle, 1) * endCandle);
-}
-
-function getCandleCoords(candle, candleWidth, minCandleHeight, lowPrice, highPrice){
-
   for(let i = 0; i < candle.length; i++){
     if(candle[i].data[cols.high] > highPrice){
       highPrice = candle[i].data[cols.high];
@@ -81,11 +58,39 @@ function getCandleCoords(candle, candleWidth, minCandleHeight, lowPrice, highPri
     }
   }
 
+
+  // Width of each candle
+  let candleWidth = chartWidth / (historyLen + futureLen);
+
+  // Get the coordinates of the candles on the canvas
+  getCandleCoords(candle, candleWidth, minCandleHeight, lowPrice, highPrice);
+  
+  // Draw price legend (text and lines)
+  drawPriceLegend(priceLegendItems, lowPrice, highPrice, horizontalLineColor);
+  // Draw date&time legend (text and lines)
+  drawTimeLegend(timeLegendItems, candle, candleWidth, verticalLineColor);
+
+  return candle;
+}
+
+// Pick a random line from the data file
+function pickLine(chart){
+  // Line index of the first usable candle
+  let startCandle = historyLen - 1; 
+  // Line index of the last usable candle
+  let endCandle = chart.length - futureLen;
+  // Returns line index
+  return Math.floor(Math.random(startCandle / endCandle, 1) * endCandle);
+}
+
+// Get coordinates of the candle, wick and their heights
+function getCandleCoords(candle, candleWidth, minCandleHeight, lowPrice, highPrice){
+
   let heightMultiplier = chartHeight / (highPrice - lowPrice);
   let yMultiplier = chartHeight / (highPrice - lowPrice);
   let x;
   let y;
-  for(let i = 0; i < candle.length; i++){
+  for(let i = 0; i < candle.length; i++){ // For all candles
     // Get candle height
     candle[i].height = Math.abs(candle[i].data[cols.open] - candle[i].data[cols.close]) * heightMultiplier;
     if(candle[i].height < minCandleHeight){
@@ -99,9 +104,9 @@ function getCandleCoords(candle, candleWidth, minCandleHeight, lowPrice, highPri
       y = Math.round((candle[i].data[cols.open] - lowPrice) * yMultiplier);
     }
     candle[i].leftTopCoords = [x + chartMargin, chartHeight - y + chartMargin];
-
-    // Get wick coordinates
+    // Get wick height
     candle[i].wickHeight = (candle[i].data[cols.high] - candle[i].data[cols.low]) * heightMultiplier;
+    // Get wick coordinates
     x += Math.round(candleWidth / 2);
     y = Math.round((candle[i].data[cols.high] - lowPrice) * yMultiplier);
     candle[i].wickTopCoords = [x + chartMargin, chartHeight - y + chartMargin];
@@ -135,11 +140,11 @@ function convertUnixTime(input){
   let date = new Date(input * 1); // No idea why that * 1 is necessary. It doesn't work without it tho
   let hours = String(date.getHours());
   let minutes = date.getMinutes();
-  date = date.toLocaleDateString('en-US');
+  date = date.toLocaleDateString('en-US'); // To format MM/DD/YYYY
   if(minutes < 10){
     minutes = "0" + String(minutes);
   }else{
     minutes = String(minutes);
   }
-  return date + " " + hours + ":" + minutes;
+  return date + " " + hours + ":" + minutes; // Time is in format HH:MM
 }
