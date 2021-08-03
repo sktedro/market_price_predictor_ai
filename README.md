@@ -15,12 +15,15 @@ wanted to try for a while now.
 
 #Data
 
-Data is expected in csv format, these are the columns:
+Data is expected in csv format, these are the columns (dates are in unix time):
 Open time, open price, high price, low price, close price, volume, close time
 
 I myself will be using data from binance and for that I've written a little
 script: https://github.com/sktedro/binance_market_data_downloader
+
 It is by default in the data/binance/binance_market_data_downloader folder and 
-downloads data to data/binance/data folder.
+downloads data to data/binance/data folder. You can change where should the
+application search for the data and what pairs and intervals should it learn
+from in 'scripts/csvReader.js'
 
 #Credits and sources
