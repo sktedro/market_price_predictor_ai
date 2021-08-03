@@ -1,0 +1,3 @@
+[submodule "data/binance/binance_market_data_downloader"]
+	path = data/binance/binance_market_data_downloader
+	url = https://github.com/sktedro/binance_market_data_downloader
