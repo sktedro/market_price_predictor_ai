@@ -1,4 +1,4 @@
-#Brief
+# Brief
 
 As I slowly continue studying artificial intelligence, I often catch myself
 wondering if it is possible to train a neural network to predict market prices.
@@ -10,10 +10,10 @@ p5.js library and either TensorFlow.js or ml5 libraries.
 Note that this project might not be finished. Ever. It's just something I have
 wanted to try for a while now.
 
-#Screenshots
+# Screenshots
 
 
-#Data
+# Data
 
 Data is expected in csv format, these are the columns (dates are in unix time):
 Open time, open price, high price, low price, close price, volume, close time
@@ -26,4 +26,4 @@ downloads data to data/binance/data folder. You can change where should the
 application search for the data and what pairs and intervals should it learn
 from in 'scripts/csvReader.js'
 
-#Credits and sources
+# Credits and sources
