@@ -1,4 +1,4 @@
-const historyLen = 100; // How many previous candles to give to the NN
+const historyLen = 100; // How many previous candles to give to the NN (does not include the predicted candle)
 const futureLen = 1; // How many candles should the NN predict
 
 /*
