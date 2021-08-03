@@ -1,7 +1,9 @@
 function pickCandle(data){
   const minCandleHeight = 2;
   const priceLegendItems = 5;
+  const horizontalLineColor = 100;
   const timeLegendItems = 5;
+  const verticalLineColor = 100;
 
   if(data.length < 1){
     console.log("ERROR: No data loaded");
@@ -30,8 +32,9 @@ function pickCandle(data){
     candle[i].line = candle[candleToPredict].line - historyLen + i;
     // Get candle data from the file's columns
     candle[i].data = data[chart][candle[i].line];
-    for(let j = 0; j < candle[i].data.length; j++){
-      candle[i].data = int(candle[i].data);
+    candle[i].data[cols.time] = convertUnixTime(candle[i].data[cols.time]);
+    for(let j = 1; j < candle[i].data.length; j++){
+      candle[i].data[j] = int(candle[i].data[j]);
     }
     // Get the color of the candle
     if(candle[i].data[cols.open] < candle[i].data[cols.close]){
@@ -47,10 +50,13 @@ function pickCandle(data){
   let lowPrice = candle[0].data[cols.low];
   let highPrice = candle[0].data[cols.high];
 
+  let candleWidth = chartWidth / (historyLen + futureLen);
+
   // Get the coordinates of the candles on the canvas
-  getCandleCoords(candle, minCandleHeight, lowPrice, highPrice);
+  getCandleCoords(candle, candleWidth, minCandleHeight, lowPrice, highPrice);
   
-  drawPriceLegend(priceLegendItems, lowPrice, highPrice);
+  drawPriceLegend(priceLegendItems, lowPrice, highPrice, horizontalLineColor);
+  drawTimeLegend(timeLegendItems, candle, candleWidth, verticalLineColor);
 
   return candle;
 }
@@ -64,9 +70,8 @@ function pickLine(chart){
   return Math.floor(Math.random(startCandle / endCandle, 1) * endCandle);
 }
 
-function getCandleCoords(candle, minCandleHeight, lowPrice, highPrice){
+function getCandleCoords(candle, candleWidth, minCandleHeight, lowPrice, highPrice){
 
-  let candleWidth = chartWidth / (historyLen + futureLen);
   for(let i = 0; i < candle.length; i++){
     if(candle[i].data[cols.high] > highPrice){
       highPrice = candle[i].data[cols.high];
@@ -95,29 +100,46 @@ function getCandleCoords(candle, minCandleHeight, lowPrice, highPrice){
     }
     candle[i].leftTopCoords = [x + chartMargin, chartHeight - y + chartMargin];
 
-  // Get wick coordinates TODO
+    // Get wick coordinates
     candle[i].wickHeight = (candle[i].data[cols.high] - candle[i].data[cols.low]) * heightMultiplier;
     x += Math.round(candleWidth / 2);
     y = Math.round((candle[i].data[cols.high] - lowPrice) * yMultiplier);
     candle[i].wickTopCoords = [x + chartMargin, chartHeight - y + chartMargin];
-
-
   }
-
 }
 
-function drawPriceLegend(items, lowPrice, highPrice){
-  let basePrice = lowPrice;
-
+function drawPriceLegend(items, lowPrice, highPrice, lineColor){
   let priceMultiplier = chartHeight / (highPrice - lowPrice);
-
+  textSize(12);
   for(let y = chartMargin; y <= chartHeight + chartMargin; y += chartHeight / (items - 1)){ // - 1 because one will be at the start and at the end
-    fill(0);
+    stroke(lineColor);
     line(0, y, canvasWidth, y);
-    textSize(12)
-    text((chartHeight - y) * priceMultiplier + basePrice, canvasWidth - priceLegendWidth + 5, y - 5); // + 5 for some offset, - 5 so the number is above the line
+    noStroke();
+    text((chartHeight - y) * priceMultiplier + lowPrice, canvasWidth - priceLegendWidth + 5, y - 5); // + 5 for some offset, - 5 so the number is above the line
   }
 }
 
-function drawTimeLegend(items, startTime, endTime){
+function drawTimeLegend(items, candle, candleWidth, lineColor){
+  let totalCandles = historyLen + futureLen;
+  let step = totalCandles / items;
+  textSize(12)
+  for(let x = 0; x < totalCandles; x = Math.round(x + step)){
+    stroke(lineColor);
+    line(candle[x].leftTopCoords[0] + candleWidth / 2, 0, candle[x].leftTopCoords[0] + candleWidth / 2, canvasHeight);
+    noStroke();
+    text(candle[x].data[cols.time], candle[x].leftTopCoords[0] + candleWidth / 2 + 5, chartHeight + chartMargin + dateLegendHeight); // + 5 for some offset, - 15 so the number is below the lowest line
+  }
+}
+
+function convertUnixTime(input){
+  let date = new Date(input * 1); // No idea why that * 1 is necessary. It doesn't work without it tho
+  let hours = String(date.getHours());
+  let minutes = date.getMinutes();
+  date = date.toLocaleDateString('en-US');
+  if(minutes < 10){
+    minutes = "0" + String(minutes);
+  }else{
+    minutes = String(minutes);
+  }
+  return date + " " + hours + ":" + minutes;
 }

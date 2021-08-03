@@ -6,10 +6,10 @@ const chartWidth = canvasWidth - chartMargin - priceLegendWidth;
 
 const canvasHeight = 500;
 const indicatorsHeight = 100;
-const dateLegendHeight = 25;
+const dateLegendHeight = 15;
 const chartHeight = canvasHeight - chartMargin - indicatorsHeight - dateLegendHeight;
 
-const backgroundColor = [220, 220, 220];
+const backgroundColor = 220;
 
 // Columns in the data file - enumeration
 const cols = {
@@ -50,7 +50,7 @@ function Candle(){
 
   this.draw = function(candleWidth){
     fill(this.color);
-    stroke(1);
+    stroke(0);
     line(this.wickTopCoords[0], this.wickTopCoords[1], this.wickTopCoords[0], this.wickTopCoords[1] + this.wickHeight);
     rect(this.leftTopCoords[0], this.leftTopCoords[1], candleWidth, this.height);
   }
