@@ -20,6 +20,7 @@ Open time, open price, high price, low price, close price, volume, close time
 
 I myself will be using data from binance and for that I've written a little
 script: https://github.com/sktedro/binance_market_data_downloader
-If you wish to use it, put it in the data/binance/ folder.
+It is by default in the data/binance/binance_market_data_downloader folder and 
+downloads data to data/binance/data folder.
 
 #Credits and sources
