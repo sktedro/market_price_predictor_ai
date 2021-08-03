@@ -45,10 +45,13 @@ function Candle(){
   this.color;
   this.leftTopCoords;
   this.height;
+  this.wickTopCoords;
+  this.wickHeight;
 
   this.draw = function(candleWidth){
     fill(this.color);
     stroke(1);
+    line(this.wickTopCoords[0], this.wickTopCoords[1], this.wickTopCoords[0], this.wickTopCoords[1] + this.wickHeight);
     rect(this.leftTopCoords[0], this.leftTopCoords[1], candleWidth, this.height);
   }
 

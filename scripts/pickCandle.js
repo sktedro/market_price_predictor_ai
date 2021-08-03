@@ -1,5 +1,7 @@
 function pickCandle(data){
   const minCandleHeight = 2;
+  const priceLegendItems = 5;
+  const timeLegendItems = 5;
 
   if(data.length < 1){
     console.log("ERROR: No data loaded");
@@ -41,8 +43,14 @@ function pickCandle(data){
     }
   }
 
+  // Get the lowest and highest price of the chosen candles
+  let lowPrice = candle[0].data[cols.low];
+  let highPrice = candle[0].data[cols.high];
+
   // Get the coordinates of the candles on the canvas
-  getCandleCoords(candle, minCandleHeight);
+  getCandleCoords(candle, minCandleHeight, lowPrice, highPrice);
+  
+  drawPriceLegend(priceLegendItems, lowPrice, highPrice);
 
   return candle;
 }
@@ -56,10 +64,7 @@ function pickLine(chart){
   return Math.floor(Math.random(startCandle / endCandle, 1) * endCandle);
 }
 
-function getCandleCoords(candle, minCandleHeight){
-  // Get the lowest and highest price of the chosen candles
-  let lowPrice = candle[0].data[cols.low];
-  let highPrice = candle[0].data[cols.high];
+function getCandleCoords(candle, minCandleHeight, lowPrice, highPrice){
 
   let candleWidth = chartWidth / (historyLen + futureLen);
   for(let i = 0; i < candle.length; i++){
@@ -73,6 +78,8 @@ function getCandleCoords(candle, minCandleHeight){
 
   let heightMultiplier = chartHeight / (highPrice - lowPrice);
   let yMultiplier = chartHeight / (highPrice - lowPrice);
+  let x;
+  let y;
   for(let i = 0; i < candle.length; i++){
     // Get candle height
     candle[i].height = Math.abs(candle[i].data[cols.open] - candle[i].data[cols.close]) * heightMultiplier;
@@ -80,15 +87,37 @@ function getCandleCoords(candle, minCandleHeight){
       candle[i].height = minCandleHeight;
     }
     // Get candle coords (of it's left top corner)
-    let x = Math.round(candleWidth * i) + 1; // +1 for the gap between candles
-    let y;
+    x = Math.round(candleWidth * i) + 1; // +1 for the gap between candles
     if(candle[i].data[cols.close] > candle[i].data[cols.open]){
       y = Math.round((candle[i].data[cols.close] - lowPrice) * yMultiplier);
     }else{
       y = Math.round((candle[i].data[cols.open] - lowPrice) * yMultiplier);
     }
     candle[i].leftTopCoords = [x + chartMargin, chartHeight - y + chartMargin];
-  }
 
   // Get wick coordinates TODO
+    candle[i].wickHeight = (candle[i].data[cols.high] - candle[i].data[cols.low]) * heightMultiplier;
+    x += Math.round(candleWidth / 2);
+    y = Math.round((candle[i].data[cols.high] - lowPrice) * yMultiplier);
+    candle[i].wickTopCoords = [x + chartMargin, chartHeight - y + chartMargin];
+
+
+  }
+
+}
+
+function drawPriceLegend(items, lowPrice, highPrice){
+  let basePrice = lowPrice;
+
+  let priceMultiplier = chartHeight / (highPrice - lowPrice);
+
+  for(let y = chartMargin; y <= chartHeight + chartMargin; y += chartHeight / (items - 1)){ // - 1 because one will be at the start and at the end
+    fill(0);
+    line(0, y, canvasWidth, y);
+    textSize(12)
+    text((chartHeight - y) * priceMultiplier + basePrice, canvasWidth - priceLegendWidth + 5, y - 5); // + 5 for some offset, - 5 so the number is above the line
+  }
+}
+
+function drawTimeLegend(items, startTime, endTime){
 }
