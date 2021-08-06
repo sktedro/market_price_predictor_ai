@@ -29,53 +29,27 @@ const inputs = historyLen * 5 + 1;
  * Low price?
  */
 
+let model;
 
-// let chartsPerEpoch = 100;
+function newModel(shape){
+  model = tf.sequential();
+  model.add(tf.layers.dense({
+    units: 64,
+    inputShape: shape,
+    activation: "relu"
+  }));
+  model.add(tf.layers.dense({
+    units: 16,
+    activation: "relu"
+  }));
+  model.add(tf.layers.dense({
+    units: 1,
+  }));
 
-const options = {
-  inputs: historyLen * 5,
-  outputs: 1,
-  task: 'regression',
-  /* layers: [
-    {
-      type: 'dense',
-      units: 256,
-      activation: 'relu'
-    },
-    {
-      type: 'dense',
-      units: 192,
-      activation: 'relu'
-    },
-    {
-      type: 'dense',
-      units: 64,
-      activation: 'relu'
-    },
-    {
-      type: 'dense',
-      units: 32,
-      activation: 'relu'
-    },
-    {
-      type: 'dense',
-      units: 1,
-      activation: 'relu'
-    }
-  ], */
-  layers: [
-    {
-      type: 'dense',
-      units: 8,
-      activation: 'relu'
-    },
-    {
-      type: 'dense',
-      units: 1,
-      activation: 'relu'
-    }
-  ],
-  debug: true,
-  learningRate: 0.2
-};
-const neuralNet = ml5.neuralNetwork(options);
+  model.compile({
+    optimizer: 'sgd', 
+    loss: 'meanSquaredError'
+  });
+  model.compile({optimizer: 'sgd', loss: 'meanSquaredError'});
+}
+

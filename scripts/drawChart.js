@@ -35,6 +35,35 @@ function getNewCandles(){
   for(let i = 0; i < historyLen + futureLen; i++){
     getCandleData(i, data, chart, candleToPredict);
   }
+
+  // Normalize the candle data
+  getPriceAndVolMultipliers();
+}
+
+let priceMultiplier;
+let volMultiplier;
+
+function getPriceAndVolMultipliers(){
+  let maxPrice = 0;
+  let maxVol = 0;
+  for(let i = 0; i < historyLen + futureLen; i++){
+    if(candle[i].data[cols.high] > maxPrice){
+      maxPrice = candle[i].data[cols.high];
+    }
+    if(candle[i].data[cols.volume] > maxVol){
+      maxVol = candle[i].data[cols.volume];
+    }
+  }
+  priceMultiplier = 1 / maxPrice;
+  volMultiplier = 1 / maxVol;
+  /* for(let i = 0; i < historyLen + futureLen; i++){
+    console.log(i);
+    candle[i].normData[cols.time] = candle[i].data[cols.time];
+    for(let j = 1; j < 5; j++){
+      candle[i].normData[j] = candle[i].data[j] * priceMultiplier;
+    }
+    candle[i].normData[cols.volume] = candle[i].data[cols.volume] * volMultiplier;
+  } */
 }
 
 // Pick a random line from the data file

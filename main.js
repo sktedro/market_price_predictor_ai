@@ -108,6 +108,14 @@ function setup(){
   drawChartButton.position(canvasWidth - 160, baseButtonY + 2 * buttonY);
   drawChartButton.size(150);
   drawChartButton.mousePressed(drawChartButtonFn);
+
+  let a = [];
+  for (let i = 0; i < 501; i++){
+    a[i] = 0;
+  }
+  let b = tf.tensor(a);
+  newModel(b.shape);
+
 }
 
 function draw(){
@@ -196,6 +204,7 @@ function Candle(){
   this.height;
   this.wickTopCoords;
   this.wickHeight;
+  this.normData;
 
   this.draw = function(candleWidth){
     fill(this.color);
@@ -207,30 +216,45 @@ function Candle(){
 
 let candle = [];
 
-function train(){
-  for(let j = 0; j < chartsPerEpoch * epochs; j++){
-    // console.log("Epoch: " + (i + 1) + ", chart: " + (j + 1));
-    addNewData();
+let tfOutputs = [];
+let tfInputs = [];
+
+async function train(){
+  for(let i = 0; i < epochs * chartsPerEpoch; i++){
+    getNewData(i);
+    const history = await model.fit(tfInputs[i], tfOutputs[i], {
+      epochs: 1
+    });
   }
-  const trainingOptions = {
+
+  /* const xDataset = tf.data.array(tfInputs);
+  const yDataset = tf.data.array(tfOutputs);
+  const xyDataset = tf.data.zip({
+    xs: xDataset,
+    ys: yDataset
+  }).batch(epochs * chartsPerEpoch).shuffle(epochs * chartsPerEpoch);
+  const history = await model.fitDataset(xyDataset, {
     batchSize: 100,
-    epochs: 100,
-  };
-  neuralNet.train(trainingOptions, whileTraining, doneTraining);
+    epochs: 1
+  }); */
+
+  // console.log(history.history.loss[0]);
+  // traininig = 0;
 }
 
-function addNewData(){
+function getNewData(chartNum){
   getNewCandles();
   let xs = [];
   for(let i = 0; i < historyLen; i++){
-    for(let j = 0; j < 5; j++){ // We give the nn 5 numbers per candle
-      xs[i * 5 + j + 1] = candle[i].data[j + 1];
+    for(let j = 0; j < 4; j++){ // We give the nn 5 numbers per candle
+      xs[i * 5 + j + 1] = candle[i].data[j + 1] * priceMultiplier;
     }
+    xs[i * 5 + 5] = candle[i].data[5] * volMultiplier;
   }
-  neuralNet.addData(xs, [candle[historyLen].data[cols.close]]);
-}
-
-function whileTraining(){
+  tfOutputs[chartNum] = tf.tensor(candle[historyLen].data[cols.close]);
+  tfInputs[chartNum] = tf.tensor(xs);
+  // console.log(xs);
+  // return tf.tensor(xs);
 }
 
 function doneTraining(){
