@@ -24,12 +24,19 @@ const cols = {
 
 let data = [[[]]]; // All loaded data in one 3D array
 
-let drawChart = 0;
+/*
+ * TODO:
+ * Button to generate new chart
+ * button to predict actual chart
+ */
+
+let drawChartToggle = 0;
 let training = 0;
 let testing = 0;
 let epochs = 100;
-let chartsPerEpoch;
-let chartsToTest;
+let epoch;
+let chartsPerEpoch = 100;
+let chartsToTest = 1000;
 
 let trainButton;
 let testButton;
@@ -55,16 +62,9 @@ function setup(){
   textSize(12);
 
   data = getData(); // Get all market data
-  getCandles(data);
-  if(candle == -1){
-    return -1;
-  }
 
-  if(drawChart){
-    for(let i = 0; i < candle.length; i++){
-      drawCandles();
-    }
-  }
+  getNewCandles(data);
+  drawChart();
 
   // Line 1
   trainButton = createButton('Start/stop training');
@@ -111,7 +111,7 @@ function setup(){
 }
 
 function draw(){
-  if(drawChart){
+  if(drawChartToggle){
     background(backgroundColor);
   }else{
     fill(backgroundColor);
@@ -147,10 +147,8 @@ function draw(){
     train();
   }
 
-  if(drawChart){
-    for(let i = 0; i < candle.length; i++){
-      drawCandles();
-    }
+  if(drawChartToggle){
+    drawChart();
     // If the mouse is on the chart, draw a cursor
     if(mouseY > chartMargin + infoHeight && mouseY < chartHeight + chartMargin + infoHeight && mouseX < chartWidth + chartMargin && mouseX > chartMargin){
       drawCursor(mouseX, mouseY);
@@ -185,8 +183,8 @@ function loadButtonFn(){
 }
 
 function drawChartButtonFn(){
-  drawChart = !drawChart;
-  let col = color(200 - drawChart * 200, drawChart * 200, 0, 255);
+  drawChartToggle = !drawChartToggle;
+  let col = color(200 - drawChartToggle * 200, drawChartToggle * 200, 0, 255);
   drawChartButton.style('background-color', col);
 }
 
@@ -210,4 +208,32 @@ function Candle(){
 let candle = [];
 
 function train(){
+  for(let j = 0; j < chartsPerEpoch * epochs; j++){
+    // console.log("Epoch: " + (i + 1) + ", chart: " + (j + 1));
+    addNewData();
+  }
+  const trainingOptions = {
+    batchSize: 100,
+    epochs: 100,
+  };
+  neuralNet.train(trainingOptions, whileTraining, doneTraining);
+}
+
+function addNewData(){
+  getNewCandles();
+  let xs = [];
+  for(let i = 0; i < historyLen; i++){
+    for(let j = 0; j < 5; j++){ // We give the nn 5 numbers per candle
+      xs[i * 5 + j + 1] = candle[i].data[j + 1];
+    }
+  }
+  neuralNet.addData(xs, [candle[historyLen].data[cols.close]]);
+}
+
+function whileTraining(){
+}
+
+function doneTraining(){
+  console.log("Done");
+  training = 0;
 }
