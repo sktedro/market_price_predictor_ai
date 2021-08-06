@@ -1,7 +1,11 @@
 const lineColor = 150;
+const cursorTextColor = [0, 0, 150]; 
+
+let edgePrices = [];
+let candleWidth; // Width of a candle including the gap
+let realCandleWidth; // .. excluding the gap
 
 function getCandles(data){
-
   if(data.length < 1){
     console.log("ERROR: No data loaded");
     return -1;
@@ -28,6 +32,17 @@ function getCandles(data){
   }
 }
 
+// Pick a random line from the data file
+function pickLine(chart){
+  // Line index of the first usable candle
+  let startCandle = historyLen - 1; 
+  // Line index of the last usable candle
+  let endCandle = chart.length - futureLen;
+  // Returns line index
+  return Math.floor(Math.random(startCandle / endCandle, 1) * endCandle);
+  // return chart.length - 50; // Just for debugging purposes TODO
+}
+
 // Get candle data from the file's columns
 function getCandleData(i, data, chart, candleToPredict){
   // Calculate the line on which the candle's data is
@@ -40,8 +55,8 @@ function getCandleData(i, data, chart, candleToPredict){
   }
 }
 
-// Get the color of the candle
-function getCandleColor(i){
+// Get the colors of the candles
+function getCandleColor(){
   for(let i = 0; i < historyLen + futureLen; i++){
     if(candle[i].data[cols.open] < candle[i].data[cols.close]){
       candle[i].color = [0, 255, 0];
@@ -54,7 +69,23 @@ function getCandleColor(i){
 }
 
 function getCandleWidth(){
-  return chartWidth / (historyLen + futureLen);
+  const candleGap = 1;
+  candleWidth = chartWidth / (historyLen + futureLen);
+  realCandleWidth = candleWidth - (2 * candleGap);
+}
+
+// Get the lowest and the highest price from the chart
+function getEdgePrices(){
+  edgePrices[0] = candle[0].data[cols.low];
+  edgePrices[1] = candle[0].data[cols.high];
+  for(let i = 1; i < candle.length; i++){
+    if(candle[i].data[cols.low] < edgePrices[0]){
+      edgePrices[0] = candle[i].data[cols.low];
+    }
+    if(candle[i].data[cols.high] > edgePrices[1]){
+      edgePrices[1] = candle[i].data[cols.high];
+    }
+  }
 }
 
 function drawCandles(){
@@ -62,44 +93,31 @@ function drawCandles(){
   const priceLegendItems = 5; // How many horizontal lines (prices) to draw as the price legend
   const timeLegendItems = 5; // How many vertical lines (dates) to draw as the date&time legend
 
-  let edgePrices = getEdgePrices(); // Get lowest and highest price for selected candles
+  getEdgePrices(); // Get lowest and highest price for selected candles
 
   // Width of each candle
-  let candleWidth = getCandleWidth();
+  getCandleWidth();
 
   getCandleColor();
 
   // Get the coordinates of the candles on the canvas
-  getCandleCoords(minCandleHeight, edgePrices);
+  getCandleCoords(minCandleHeight);
   
   // Draw price legend (text and lines)
-  drawPriceLegend(priceLegendItems, edgePrices);
+  drawPriceLegend(priceLegendItems);
 
   // Draw date&time legend (text and lines)
   drawTimeLegend(timeLegendItems);
 
   // Draw the candles onto the canvas
   stroke(0);
-  strokeWeight(1);
   for(let i = 0; i < candle.length; i++){
-    candle[i].draw(candleWidth - 2); // - 2 to create a gap between candles
+    candle[i].draw(realCandleWidth); // - 2 to create a gap between candles
   }
 }
 
-// Pick a random line from the data file
-function pickLine(chart){
-  // Line index of the first usable candle
-  let startCandle = historyLen - 1; 
-  // Line index of the last usable candle
-  let endCandle = chart.length - futureLen;
-  // Returns line index
-  // return Math.floor(Math.random(startCandle / endCandle, 1) * endCandle);
-  return chart.length - 50; // Just for debugging purposes TODO
-}
-
 // Get coordinates of the candle, wick and their heights
-function getCandleCoords(minCandleHeight, edgePrices){
-  let candleWidth = getCandleWidth();
+function getCandleCoords(minCandleHeight){
   let yMultiplier = chartHeight / (edgePrices[1] - edgePrices[0]);
   let x;
   let y;
@@ -109,6 +127,7 @@ function getCandleCoords(minCandleHeight, edgePrices){
     if(candle[i].height < minCandleHeight){
       candle[i].height = minCandleHeight;
     }
+
     // Get candle coords (of it's left top corner)
     x = Math.round(candleWidth * i) + 1; // +1 for the gap between candles
     if(candle[i].data[cols.close] > candle[i].data[cols.open]){
@@ -116,54 +135,45 @@ function getCandleCoords(minCandleHeight, edgePrices){
     }else{
       y = Math.round((candle[i].data[cols.open] - edgePrices[0]) * yMultiplier);
     }
-    candle[i].leftTopCoords = [x + chartMargin, chartHeight - y + chartMargin];
+    candle[i].leftTopCoords = [x + chartMargin, chartHeight - y + chartMargin + infoHeight];
+
     // Get wick height
     candle[i].wickHeight = (candle[i].data[cols.high] - candle[i].data[cols.low]) * yMultiplier;
+
     // Get wick coordinates
     x += candleWidth / 2;
     y = Math.round((candle[i].data[cols.high] - edgePrices[0]) * yMultiplier);
-    candle[i].wickTopCoords = [x + chartMargin - 1, chartHeight - y + chartMargin];
+    candle[i].wickTopCoords = [x + chartMargin - 1, chartHeight - y + chartMargin + infoHeight];
   }
 }
 
 function drawCursor(x, y){
-  let edgePrices = getEdgePrices();
-  let priceMultiplier = (edgePrices[1] - edgePrices[0]) / chartHeight;
+  let candleIndex = Math.round((x - chartMargin) / candleWidth);
+  if(candleIndex < historyLen + futureLen){
+    let priceMultiplier = (edgePrices[1] - edgePrices[0]) / chartHeight;
 
-  // Draw a rectangle behind the price
-  fill(backgroundColor);
-  noStroke();
-  rect(canvasWidth - priceLegendWidth, y - 16, priceLegendWidth, 16);
-  fill(0, 0, 150);
-  drawPrice(y, (chartHeight - y + chartMargin) * priceMultiplier + edgePrices[0]);
+    // Draw a rectangle behind the price and then the price
+    fill(backgroundColor);
+    noStroke();
+    rect(canvasWidth - priceLegendWidth, y - 16, priceLegendWidth, 16);
+    fill(cursorTextColor);
+    drawPrice(y, (chartHeight - y + chartMargin) * priceMultiplier + edgePrices[0]);
 
-  //Draw a rectangle behind the date&time
-  fill(backgroundColor);
-  noStroke();
-  rect(x, chartHeight + chartMargin, 100, 16);
-  let candleIndex = Math.round((x - chartMargin) / getCandleWidth());
-  fill(0, 0, 150);
-  drawTime(candleIndex);
-
-}
-
-function getEdgePrices(){
-  // Get the lowest and highest price from the chart
-  let lowPrice = candle[0].data[cols.low];
-  let highPrice = candle[0].data[cols.high];
-  for(let i = 1; i < candle.length; i++){
-    if(candle[i].data[cols.low] < lowPrice){
-      lowPrice = candle[i].data[cols.low];
-    }
-    if(candle[i].data[cols.high] > highPrice){
-      highPrice = candle[i].data[cols.high];
-    }
+    //Draw a rectangle behind the date&time and then the date&time
+    fill(backgroundColor);
+    noStroke();
+    rect(x, chartHeight + chartMargin + infoHeight, 125, 16);
+    fill(cursorTextColor);
+    drawTime(candleIndex);
   }
-  return [lowPrice, highPrice];
 }
 
-function getPriceMultiplier(edgePrices){
-  return (edgePrices[1] - edgePrices[0]) / chartHeight;
+function drawPriceLegend(items){
+  let priceMultiplier = (edgePrices[1] - edgePrices[0]) / chartHeight;
+  fill(0);
+  for(let y = 0; y <= chartHeight ; y += chartHeight / (items - 1)){ // - 1 because one will be at the start and at the end
+    drawPrice(y + chartMargin + infoHeight, (chartHeight - y) * priceMultiplier + edgePrices[0]);
+  }
 }
 
 function drawPrice(y, price){
@@ -174,33 +184,22 @@ function drawPrice(y, price){
   text(price, canvasWidth - priceLegendWidth + 5, y - 5); // + 5 for some offset, - 5 so the number is above the line
 }
 
-function drawTime(candleIndex){
-  let candleWidth = getCandleWidth();
-  stroke(lineColor);
-  let leftTop = candle[candleIndex].leftTopCoords[0] - 1; // -1 to draw it more in the center
-  let halfCandleWidth = candleWidth / 2;
-  line(leftTop + halfCandleWidth, 0, leftTop + halfCandleWidth, canvasHeight);
-  noStroke();
-  textSize(12)
-  text(candle[candleIndex].data[cols.time], leftTop + halfCandleWidth + 5, chartHeight + chartMargin + dateLegendHeight); // + 5 for some offset, - 15 so the number is below the lowest line
-}
-
-function drawPriceLegend(items, edgePrices){
-  let priceMultiplier = (edgePrices[1] - edgePrices[0]) / chartHeight;
-  fill(0);
-  for(let y = 0; y <= chartHeight ; y += chartHeight / (items - 1)){ // - 1 because one will be at the start and at the end
-    drawPrice(y + chartMargin, (chartHeight - y) * priceMultiplier + edgePrices[0]);
-  }
-}
-
 function drawTimeLegend(items){
-  let candleWidth = getCandleWidth();
   let totalCandles = historyLen + futureLen;
   let step = totalCandles / items;
   fill(0);
   for(let x = 0; x < totalCandles; x = Math.round(x + step)){
-    fill(0);
-    drawTime(x, candleWidth);
+    drawTime(x);
   }
 }
 
+function drawTime(candleIndex){
+  stroke(lineColor);
+  strokeWeight(1);
+  let leftTop = candle[candleIndex].leftTopCoords[0] - 1; // -1 to draw it more in the center
+  let halfCandleWidth = candleWidth / 2;
+  line(leftTop + halfCandleWidth, infoHeight, leftTop + halfCandleWidth, canvasHeight + infoHeight);
+  noStroke();
+  textSize(12)
+  text(candle[candleIndex].data[cols.time], leftTop + halfCandleWidth + 5, chartHeight + chartMargin + dateLegendHeight + infoHeight); // + 5 for some offset
+}

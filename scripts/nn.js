@@ -21,3 +21,14 @@ const futureLen = 1; // How many candles should the NN predict
  *   ...
  */
 const inputs = historyLen * 5 + 1;
+
+/*
+ * Outputs:
+ * Close price
+ * High price?
+ * Low price?
+ */
+
+
+// let chartsPerEpoch = 100;
+
