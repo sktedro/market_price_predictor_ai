@@ -29,11 +29,18 @@ function setup(){
   frameRate(30);
 
   data = getData(); // Get all market data
-  background(backgroundColor);
   train();
 }
 
 function draw(){
+  background(backgroundColor);
+  // If the mouse is on the chart, draw the lines, price and time&date
+  for(let i = 0; i < candle.length; i++){
+    drawCandles();
+  }
+  if(mouseY > chartMargin && mouseY < chartHeight + chartMargin && mouseX < chartWidth + chartMargin && mouseX > chartMargin){
+    drawCursor(mouseX, mouseY);
+  }
 
   
 
@@ -56,21 +63,14 @@ function Candle(){
 
 }
 
-//TODO just for debugging purposes this is a global variable
 let candle = [];
 
 function train(){
 
 
-  candle = pickCandle(data);
+  getCandles(data);
   if(candle == -1){
     return -1;
-  }
-  let candleWidth = chartWidth / (historyLen + futureLen);
-  candleWidth -= 2; // Create a gap of two pixels between every candle
-  stroke(0);
-  for(let i = 0; i < candle.length; i++){
-    candle[i].draw(candleWidth);
   }
 
 

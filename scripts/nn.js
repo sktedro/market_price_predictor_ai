@@ -11,10 +11,13 @@ const futureLen = 1; // How many candles should the NN predict
  *   Close price
  *   Volume
  * Time (minutes from 00:00) - for example 01:30 = 1*60 + 30
+ * Day of the week
  * Timeframe (interval of candles) in minutes?
  * Indicators:?
  *   MA
  *   RSI
+ *   STOCH
+ *   OBV
  *   ...
  */
 const inputs = historyLen * 5 + 1;

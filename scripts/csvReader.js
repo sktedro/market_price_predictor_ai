@@ -2,7 +2,7 @@
 
 function getData(){
   let data = [[[]]];
-  const path = "data/binance/data/"; // Path with the data
+  const path = "data/binance/data"; // Path with the data
   const pairs = ["BTCUSDT"]; // Pairs to train on
   const intervals = ["1h"]; // Intervals to train on
 
