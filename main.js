@@ -22,7 +22,7 @@ const cols = {
   volume: 5
 };
 
-let data = [[[]]]; // All loaded data in one 3D array
+let allData = [[[]]]; // All loaded data in one 3D array
 
 /*
  * TODO:
@@ -30,12 +30,12 @@ let data = [[[]]]; // All loaded data in one 3D array
  * button to predict actual chart
  */
 
-let drawChartToggle = 0;
+let drawChartToggle = 1;
 let training = 0;
 let testing = 0;
-let epochs = 100;
-let epoch;
-let chartsPerEpoch = 100;
+let epochs = 10;
+let actEpoch;
+let chartsPerEpoch = 10000;
 let chartsToTest = 1000;
 
 let trainButton;
@@ -61,9 +61,11 @@ function setup(){
 
   textSize(12);
 
-  data = getData(); // Get all market data
+  allData = getData(); // Get all market data
 
-  getNewCandles(data);
+  let ret = getNewCandles(allData);
+  if(ret == -1){
+  }
   drawChart();
 
   // Line 1
@@ -110,13 +112,15 @@ function setup(){
   drawChartButton.mousePressed(drawChartButtonFn);
 
   let a = [];
-  for (let i = 0; i < 501; i++){
+  for (let i = 0; i < 500; i++){
     a[i] = 0;
   }
   let b = tf.tensor(a);
   newModel(b.shape);
 
 }
+
+let trainingHelper = 0;
 
 function draw(){
   if(drawChartToggle){
@@ -140,7 +144,7 @@ function draw(){
   // Line 4
   if(training){
     fill(155, 0, 0);
-    text("Status: training epoch: " + epoch, 10, baseTextY + 3 * textY);
+    text("Status: training epoch: " + actEpoch, 10, baseTextY + 3 * textY);
   }else if(testing){
     fill(0, 0, 155);
     text("Status: testing",  10, baseTextY + 3 * textY);
@@ -151,7 +155,8 @@ function draw(){
   fill(0);
 
 
-  if(training){
+  if(trainingHelper){
+    trainingHelper = 0;
     train();
   }
 
@@ -166,6 +171,8 @@ function draw(){
 
 function trainButtonFn(){
   training = !training;
+  trainingHelper = 1;
+  // train();
 }
 
 function epochsInputFn(){
@@ -176,7 +183,10 @@ function chartsPerEpochInputFn(){
   chartsPerEpoch = this.value();
 }
 
-function saveButtonFn(){
+async function saveButtonFn(){
+  const saveResult = await model.save('downloads://model');
+  console.log("Result of the save process: ");
+  console.log(saveResult);
 }
 
 function testButtonFn(){
@@ -187,7 +197,8 @@ function testInputFn(){
   chartsToTest = this.value();
 }
 
-function loadButtonFn(){
+async function loadButtonFn(){
+  model = await tf.loadLayersModel('http://localhost:8080/model.json');
 }
 
 function drawChartButtonFn(){
@@ -199,12 +210,13 @@ function drawChartButtonFn(){
 function Candle(){
   this.line;
   this.data;
+  this.time;
   this.color;
   this.leftTopCoords;
   this.height;
   this.wickTopCoords;
   this.wickHeight;
-  this.normData;
+  this.normData = [];
 
   this.draw = function(candleWidth){
     fill(this.color);
@@ -216,48 +228,65 @@ function Candle(){
 
 let candle = [];
 
-let tfOutputs = [];
 let tfInputs = [];
+let tfOutputs = [];
+
+async function trainingFn(xs, ys){
+  // xs.print();
+  const result = await model.fit(xs, ys, {
+    batchSize: chartsPerEpoch,
+    epochs: epochs,
+    shuffle: true,
+    verbose: 2,
+    callbacks: {
+      onEpochEnd: async (epoch) => {
+        console.log("Epoch: " + (epoch + 1));
+        // actEpoch = epoch;
+      }
+    }
+  });
+  console.log(result.history.loss[0]);
+}
 
 async function train(){
-  for(let i = 0; i < epochs * chartsPerEpoch; i++){
-    getNewData(i);
-    const history = await model.fit(tfInputs[i], tfOutputs[i], {
-      epochs: 1
-    });
+  while(training){
+
+    console.log("Generating " + chartsPerEpoch + " new data");
+    for(let i = 0; i < chartsPerEpoch; i++){
+      await getNewData(i);
+      // tfInputs[i].print();
+    }
+    // xs = tf.tensor2d(tfInputs, [1000, 500]);
+    // ys = tf.tensor2d(tfOutputs, [1000, 1]);
+    let xs = tf.tensor2d(tfInputs, [chartsPerEpoch, 500]);
+    let ys = tf.tensor2d(tfOutputs, [chartsPerEpoch, 1]);
+
+    console.log("Training starting now");
+    await trainingFn(xs, ys);
+    console.log("Training finished");
+
+    xs.dispose();
+    ys.dispose();
+
+
   }
-
-  /* const xDataset = tf.data.array(tfInputs);
-  const yDataset = tf.data.array(tfOutputs);
-  const xyDataset = tf.data.zip({
-    xs: xDataset,
-    ys: yDataset
-  }).batch(epochs * chartsPerEpoch).shuffle(epochs * chartsPerEpoch);
-  const history = await model.fitDataset(xyDataset, {
-    batchSize: 100,
-    epochs: 1
-  }); */
-
-  // console.log(history.history.loss[0]);
-  // traininig = 0;
 }
 
-function getNewData(chartNum){
-  getNewCandles();
-  let xs = [];
+async function getNewData(chartNum){
+  await getNewCandles();
+  let xss = [];
   for(let i = 0; i < historyLen; i++){
     for(let j = 0; j < 4; j++){ // We give the nn 5 numbers per candle
-      xs[i * 5 + j + 1] = candle[i].data[j + 1] * priceMultiplier;
+      // xss[i * 5 + j] = candle[i].data[j + 1] * priceMultiplier;
+      xss[i * 5 + j] = candle[i].normData[j]
     }
-    xs[i * 5 + 5] = candle[i].data[5] * volMultiplier;
+    // xss[i * 5 + 4] = candle[i].data[5] * volMultiplier;
+    xss[i * 5 + 4] = candle[i].normData[4]
   }
-  tfOutputs[chartNum] = tf.tensor(candle[historyLen].data[cols.close]);
-  tfInputs[chartNum] = tf.tensor(xs);
+  // tfInputs[chartNum] = tf.tensor2d(xs, [1, 500]);
+  // tfOutputs[chartNum] = tf.tensor2d([candle[historyLen].data[cols.close]]);
+  tfInputs[chartNum] = xss;
+  tfOutputs[chartNum] = candle[historyLen].data[cols.close];
   // console.log(xs);
   // return tf.tensor(xs);
-}
-
-function doneTraining(){
-  console.log("Done");
-  training = 0;
 }

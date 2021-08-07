@@ -8,7 +8,8 @@ let chartName = [];
 let actChartName;
 
 function getNewCandles(){
-  if(data.length < 1){
+  // console.log("Data at the beginning of getNewCandles: " + allData[0][allData[0].length - 100]);
+  if(allData.length < 1){
     console.log("ERROR: No data loaded");
     return -1;
   }
@@ -18,26 +19,39 @@ function getNewCandles(){
 
   // Randomly pick a chart
   // Index of the chart - specifies the pair and interval
-  let chart = Math.round(Math.random() * (data.length - 1));
+  let chart = Math.round(Math.random() * (allData.length - 1));
   actChartName = chartName[chart];
 
   // Create the candles
   for(let i = 0; i < historyLen + futureLen; i++){
-    candle[i] = new Candle();
+    if(!candle[i]){
+      candle[i] = new Candle();
+    }
+    // console.log("New candles created");
   }
 
   // Pick a random candle from tha chart
-  candle[candleToPredict].line = pickLine(data[chart]);
+  candle[candleToPredict].line = pickLine(allData[chart]);
+  // console.log("Line: " + candle[candleToPredict].line);
+  // console.log("Data: " + allData[0][allData[0].length - 100]);
+  if(candle[candleToPredict].line == -1){
+    console.log("Not enough data in a chart");
+    return -1;
+  }
+  // console.log("Data after picking a candle: " + allData[0][allData[0].length - 100]);
 
   // console.log("Chart: " + actChartName + ", line: " + candle[candleToPredict].line);
 
   // Initialize the candles
-  for(let i = 0; i < historyLen + futureLen; i++){
-    getCandleData(i, data, chart, candleToPredict);
-  }
+  // console.log("Data before getCandleData: " + allData[0][allData[0].length - 100]);
+  // console.log("Calling getCandleData");
+  getCandleData(allData, chart, candleToPredict);
+  // console.log("Candle data fetched");
+  // console.log("Data after getCandleData: " + allData[0][allData[0].length - 100]);
 
   // Normalize the candle data
   getPriceAndVolMultipliers();
+  // console.log("Data at the end of getNewCandles: " + allData[0][allData[0].length - 100]);
 }
 
 let priceMultiplier;
@@ -45,47 +59,94 @@ let volMultiplier;
 
 function getPriceAndVolMultipliers(){
   let maxPrice = 0;
+  let minPrice = 0;
   let maxVol = 0;
   for(let i = 0; i < historyLen + futureLen; i++){
     if(candle[i].data[cols.high] > maxPrice){
       maxPrice = candle[i].data[cols.high];
     }
+    if(candle[i].data[cols.low] < minPrice){
+      minPrice = candle[i].data[cols.low];
+    }
     if(candle[i].data[cols.volume] > maxVol){
       maxVol = candle[i].data[cols.volume];
     }
   }
-  priceMultiplier = 1 / maxPrice;
+  priceMultiplier = 1 / (maxPrice - minPrice);
   volMultiplier = 1 / maxVol;
-  /* for(let i = 0; i < historyLen + futureLen; i++){
-    console.log(i);
-    candle[i].normData[cols.time] = candle[i].data[cols.time];
+  for(let i = 0; i < historyLen + futureLen; i++){
+    // console.log(i);
     for(let j = 1; j < 5; j++){
-      candle[i].normData[j] = candle[i].data[j] * priceMultiplier;
+      candle[i].normData[j - 1] = (candle[i].data[j] - minPrice) * priceMultiplier;
     }
-    candle[i].normData[cols.volume] = candle[i].data[cols.volume] * volMultiplier;
-  } */
+    candle[i].normData[cols.volume - 1] = candle[i].data[cols.volume] * volMultiplier;
+  }
 }
 
 // Pick a random line from the data file
 function pickLine(chart){
+  // console.log("Data before picking a line: " + allData[0][allData[0].length - 100]);
+  // console.log("Chart len: " + chart.length);
   // Line index of the first usable candle
   let startCandle = historyLen - 1; 
   // Line index of the last usable candle
   let endCandle = chart.length - futureLen;
+  // We need to have at least some amount of data
+  if(endCandle <= startCandle - 1){
+    return -1;
+  }
+  let pickedLine = Math.floor(Math.random() * (endCandle - startCandle - 1)) + startCandle + 1;
+  if(pickedLine < historyLen + 1){
+    return historyLen + 1;
+  }else if(pickedLine > chart.length - futureLen - 1){
+    return chart.length - futureLen - 1;
+  }
   // Returns line index
-  return Math.floor(Math.random() * (endCandle - startCandle - 1)) + startCandle + 1;
+  return pickedLine;
   // return chart.length - 50; // Just for debugging purposes TODO
 }
 
 // Get candle data from the file's columns
-function getCandleData(i, data, chart, candleToPredict){
-  // Calculate the line on which the candle's data is
-  candle[i].line = candle[candleToPredict].line - historyLen - futureLen + i;
-  // Read the data and convert it
-  candle[i].data = data[chart][candle[i].line];
-  candle[i].data[cols.time] = convertUnixTime(candle[i].data[cols.time]);
-  for(let j = 1; j < candle[i].data.length; j++){
-    candle[i].data[j] = parseFloat(candle[i].data[j]);
+function getCandleData(allData, chart, candleToPredict){
+  for(let i = 0; i < historyLen + futureLen; i++){
+    // console.log("Data at the beginning of getCandleData, i = " + i + ", : " + allData[0][allData[0].length - 100]);
+    // if(i == 51){
+      // console.log("Data at the beginning of getCandleData, i = 51;" + allData[0][allData[0].length - 100]);
+    // }
+    // if(i == 52){
+      // console.log("Data at the beginning of getCandleData, i = 52;" + allData[0][allData[0].length - 100]);
+    // }
+    // Calculate the line on which the candle's data is
+    candle[i].line = candle[candleToPredict].line - historyLen - futureLen + i;
+    // if(i == 51){
+      // console.log("Data after writing a .line, i = 51;" + allData[0][allData[0].length - 100]);
+    // }
+    // if(i == 52){
+      // console.log("Data after writing a .line, i = 52;" + allData[0][allData[0].length - 100]);
+    // }
+    // Read the data and convert it
+    candle[i].data = allData[chart][candle[i].line];
+    // if(i == 51){
+      // console.log("Data after writing data to the candle, i = 51;" + allData[0][allData[0].length - 100]);
+    // }
+    // if(i == 52){
+      // console.log("Data after writing data to the candle, i = 52;" + allData[0][allData[0].length - 100]);
+    // }
+    // console.log(candle[i].line);
+    // if(!candle[i].data){
+      // console.log(candle[i].data);
+    // }
+    // candle[i].data[cols.time] = convertUnixTime(candle[i].data[cols.time]);
+    candle[i].time = convertUnixTime(candle[i].data[cols.time]);
+    // if(i == 51){
+      // console.log("Data after converting unix time, i = 51;" + allData[0][allData[0].length - 100]);
+    // }
+    // if(i == 52){
+      // console.log("Data after converting unix time, i = 52;" + allData[0][allData[0].length - 100]);
+    // }
+    for(let j = 1; j < candle[i].data.length; j++){
+      candle[i].data[j] = parseFloat(candle[i].data[j]);
+    }
   }
 }
 
@@ -243,5 +304,5 @@ function drawTime(candleIndex){
   line(leftTop + halfCandleWidth, infoHeight, leftTop + halfCandleWidth, canvasHeight + infoHeight);
   noStroke();
   textSize(12)
-  text(candle[candleIndex].data[cols.time], leftTop + halfCandleWidth + 5, chartHeight + chartMargin + dateLegendHeight + infoHeight); // + 5 for some offset
+  text(candle[candleIndex].time, leftTop + halfCandleWidth + 5, chartHeight + chartMargin + dateLegendHeight + infoHeight); // + 5 for some offset
 }

@@ -8,7 +8,11 @@ that's convenient. Also, this will probably be written in JavaScript using the
 p5.js library and either TensorFlow.js or ml5 libraries.
 
 Note that this project might not be finished. Ever. It's just something I have
-wanted to try for a while now.
+wanted to try for a while now. However, if everything goes well with
+TensorFlow.js and maybe if I reach something like 70-80% accuracy (of 
+predicting if the next candle's close price will be higher or lower than the 
+previous one), I might try essentially the same thing in python using 
+TensorFlow.
 
 # Screenshots
 

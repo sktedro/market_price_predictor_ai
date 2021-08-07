@@ -3,8 +3,8 @@
 function getData(){
   let data = [[[]]];
   const path = "data/binance/data"; // Path with the data
-  const pairs = ["BTCUSDT", "ADABTC"]; // Pairs to train on
-  const intervals = ["1h"]; // Intervals to train on
+  const pairs = ["BTCUSDT", "ADABTC", "BNBBTC", "ETHBTC", "XRPBTC", "XLMBTC"]; // Pairs to train on
+  const intervals = ["1h", "30m"]; // Intervals to train on
   let charts = pairs.length * intervals.length;
 
   for(let i = 0; i < pairs.length; i++){

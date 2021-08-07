@@ -20,7 +20,7 @@ const futureLen = 1; // How many candles should the NN predict
  *   OBV
  *   ...
  */
-const inputs = historyLen * 5 + 1;
+const inputs = historyLen * 5;
 
 /*
  * Outputs:
@@ -34,22 +34,25 @@ let model;
 function newModel(shape){
   model = tf.sequential();
   model.add(tf.layers.dense({
+    units: 128,
+    activation: "relu",
+    inputShape: [500]
+  }));
+  model.add(tf.layers.dense({
     units: 64,
-    inputShape: shape,
     activation: "relu"
   }));
   model.add(tf.layers.dense({
-    units: 16,
+    units: 32,
     activation: "relu"
   }));
   model.add(tf.layers.dense({
-    units: 1,
+    units: 1
   }));
 
   model.compile({
-    optimizer: 'sgd', 
+    optimizer: tf.train.sgd(0.00000001),
     loss: 'meanSquaredError'
   });
-  model.compile({optimizer: 'sgd', loss: 'meanSquaredError'});
 }
 
