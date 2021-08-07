@@ -245,12 +245,11 @@ async function trainingFn(xs, ys){
       }
     }
   });
-  console.log(result.history.loss[0]);
+  console.log("Loss: " + result.history.loss[0]);
 }
 
 async function train(){
   while(training){
-
     console.log("Generating " + chartsPerEpoch + " new data");
     for(let i = 0; i < chartsPerEpoch; i++){
       await getNewData(i);
@@ -263,12 +262,16 @@ async function train(){
 
     console.log("Training starting now");
     await trainingFn(xs, ys);
-    console.log("Training finished");
+
+    console.log("One of the training inputs has this output:");
+    console.log(tfOutputs[0]);
+    console.log("And the model predicted it to be this value:");
+    model.predict(tf.tensor2d(tfInputs[0], [1, 500])).print();
 
     xs.dispose();
     ys.dispose();
 
-
+    console.log("Training finished");
   }
 }
 
@@ -286,7 +289,8 @@ async function getNewData(chartNum){
   // tfInputs[chartNum] = tf.tensor2d(xs, [1, 500]);
   // tfOutputs[chartNum] = tf.tensor2d([candle[historyLen].data[cols.close]]);
   tfInputs[chartNum] = xss;
-  tfOutputs[chartNum] = candle[historyLen].data[cols.close];
+  tfOutputs[chartNum] = candle[historyLen].normData[cols.close - 1];
+  // console.log(tfOutputs[chartNum]);
   // console.log(xs);
   // return tf.tensor(xs);
 }

@@ -11,6 +11,7 @@ function getData(){
     for(let j = 0; j < intervals.length; j++){
       data[--charts] = readData(path + "/" + pairs[i] + "/" + pairs[i] + "-" + intervals[j] + ".csv");
       chartName[charts] = pairs[i] + " - " + intervals[j];
+      console.log("Chart " + pairs[i] + "-" + intervals[j] + " loaded.");
     }
   }
   return data;

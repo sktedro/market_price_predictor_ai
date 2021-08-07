@@ -51,7 +51,7 @@ function newModel(shape){
   }));
 
   model.compile({
-    optimizer: tf.train.sgd(0.00000001),
+    optimizer: tf.train.sgd(0.0001),
     loss: 'meanSquaredError'
   });
 }
