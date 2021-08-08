@@ -11,3 +11,7 @@ function convertUnixTime(input){
   // console.log("Data before returning unix time;" + allData[0][allData[0].length - 100]);
   return date + " " + hours + ":" + minutes; // Time is in format HH:MM
 }
+
+function getRandomBetween(min, max){ // call Math.round() to make an integer
+  return min + Math.random() * (max - min);
+}

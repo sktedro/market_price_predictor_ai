@@ -3,14 +3,41 @@
 function getData(){
   let data = [[[]]];
   const path = "data/binance/data"; // Path with the data
-  const pairs = ["BTCUSDT", "ADABTC", "BNBBTC", "ETHBTC", "XRPBTC", "XLMBTC"]; // Pairs to train on
-  const intervals = ["1h", "30m"]; // Intervals to train on
+  const pairs = [
+    "BTCUSDT", 
+    "BNBUSDT", 
+    "ETHUSDT",
+    "ADAUSDT",
+    "NEOUSDT",
+    "XRPUSDT",
+    "LTCUSDT",
+    "ETCUSDT",
+    "ADABTC", 
+    "BNBBTC", 
+    "ETHBTC", 
+    "XRPBTC", 
+    "XLMBTC",
+    "NEOBTC", 
+    "DGBBTC",
+    "SCBTC",
+    "LTCBTC",
+    "BCHBTC",
+    "ETCBTC",
+    "XMRBTC"
+  ]; // Pairs to train on
+  const intervals = [
+    "15m", 
+    "30m",
+    "1h", 
+    "4h",
+    "1d"
+  ]; // Intervals to train on
   let charts = pairs.length * intervals.length;
 
   for(let i = 0; i < pairs.length; i++){
     for(let j = 0; j < intervals.length; j++){
       data[--charts] = readData(path + "/" + pairs[i] + "/" + pairs[i] + "-" + intervals[j] + ".csv");
-      chartName[charts] = pairs[i] + " - " + intervals[j];
+      chartNames[charts] = pairs[i] + " - " + intervals[j];
       console.log("Chart " + pairs[i] + "-" + intervals[j] + " loaded.");
     }
   }
@@ -32,4 +59,18 @@ function readData(path){
     }
   });
   return output;
+}
+
+function checkData(){
+  if(allData.length < 1){
+    console.log("ERROR: No data loaded");
+    return 1;
+  }
+  for(let i = 0; i < allData.length; i++){
+    if(allData[i].length < historyLen + futureLen){
+      console.log("ERROR: Not enough data in chart " + chartNames[i]);
+      return 2;
+    }
+  }
+  return 0;
 }
