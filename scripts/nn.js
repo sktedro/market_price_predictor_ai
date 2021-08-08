@@ -35,7 +35,7 @@ function Ai(){
   const outputs = 4;
 
   this.model;
-  this.learningRate = 0.001;
+  this.learningRate = 0.0001;
 
   this.newModel = function(){
     // Initialise the model as a sequential neural network
@@ -111,17 +111,17 @@ function Ai(){
       }
 
       for(let j = 1; j < 4; j++){
-        singlePriceAccuracy = expectedOutput[j] / predictedOutput[j];
-        if(singlePriceAccuracy > 1){
-          singlePriceAccuracy = 1 / singlePriceAccuracy;
-        }
-        accuracySum += singlePriceAccuracy;
+        let expectedPrice = expectedOutput[j] / chart[i].priceMultiplier + chart[i].minPrice;
+        let predictedPrice = predictedOutput[j] / chart[i].priceMultiplier + chart[i].minPrice;
+        accuracySum += Math.abs((1 / (expectedPrice / predictedPrice)) - 1);
       }
     }
     xs.dispose();
     ys.dispose();
 
     upDownAccuracy = ((upDownAccuracySum / chartsAmount) * 100).toFixed(8);
+
+    // SHOULD BE CALCULATED DIFFERENTLY?
     avgAccuracy = ((accuracySum / (chartsAmount * 3)) * 100).toFixed(8); // * 3 because we measure accuracy of predicting candle close, high and low
 
     testing = 0;

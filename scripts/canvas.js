@@ -82,7 +82,7 @@ function drawInfo(){
   // Line 3
   fill(0);
   drawText(3, 1, "Up or down prediction accuracy (last testing): " + upDownAccuracy + "%");
-  drawText(3, 3, "Average prediction accuracy of candle's close, high and low (last testing): " + avgAccuracy + "%");
+  drawText(3, 3, "Average prediction error of candle's close, high and low (last testing): " + avgAccuracy + "%");
 }
 
 function drawText(row, col, textToDraw){
