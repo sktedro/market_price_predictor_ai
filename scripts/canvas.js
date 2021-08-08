@@ -45,6 +45,7 @@ function setupInfo(){
   // Line 2
   testButton = new Button(2, 1, "Test", testButtonFn);
   testInput = new Input(2, 2, "Test charts (#):", "", testInputFn);
+  testOnceButton = new Button(2, 4, "Generate and test one chart", testOnceButtonFn);
   // Line 4
   drawChartButton = new Button(4, 4, "Draw the chart?", drawChartButtonFn);
   // Line 5
@@ -125,19 +126,23 @@ function testInputFn(){
   chartsToTest = parseFloat(this.value());
 }
 
+function testOnceButtonFn(){
+  ai.test(1);
+}
+
 async function loadBrowserButtonFn(){
   ai.model = await tf.loadLayersModel('localstorage://model');
   ai.compileModel();
-  console.log("Model saved in the browser was loaded");
+  console.log("Model was loaded from the browser");
 }
 async function loadLocalButtonFn(){
   ai.model = await tf.loadLayersModel('http://localhost:8080/model.json');
   ai.compileModel();
-  console.log("Model saved in the browser was loaded");
+  console.log("???");
 }
 
 function drawChartButtonFn(){
   drawChartToggle = !drawChartToggle;
-  let col = color(200 - drawChartToggle * 200, drawChartToggle * 200, 0, 255);
-  drawChartButton.style('background-color', col);
+  // let col = color(200 - drawChartToggle * 200, drawChartToggle * 200, 0, 255);
+  // drawChartButton.button.style('background-color', col);
 }

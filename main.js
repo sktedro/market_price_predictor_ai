@@ -99,7 +99,7 @@ function draw(){
   }
 
   if(testing){
-    ai.test();
+    ai.test(chartsToTest);
   }
 
   if(drawChartToggle){

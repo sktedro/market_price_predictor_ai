@@ -35,7 +35,7 @@ function Ai(){
   const outputs = 4;
 
   this.model;
-  this.learningRate = 0.0001;
+  this.learningRate = 0.001;
 
   this.newModel = function(){
     // Initialise the model as a sequential neural network
@@ -73,41 +73,41 @@ function Ai(){
     });
   }
 
-  this.test = async function(){
+  this.test = async function(chartsAmount){
     let accuracySum = 0;
     let singlePriceAccuracy;
 
-    let expectedUp = Number.MIN_VALUE;
-    let expectedDown = Number.MIN_VALUE;
-    let predictedUp = Number.MIN_VALUE;
-    let predictedDown = Number.MIN_VALUE;
+    let upDownAccuracySum = 0;
 
-    console.log("Generating " + chartsToTest + " new data");
-    let io = await this.getNewTrainingData(chartsToTest); // Inputs and outputs of the neural net (almost. They need to be converted to tensors)
+    console.log("Generating " + chartsAmount + " new data");
+    let io = await this.getNewTrainingData(chartsAmount); // Inputs and outputs of the neural net (almost. They need to be converted to tensors)
 
     console.log("Testing with new data started");
-    let xs = tf.tensor2d(io[0], [chartsToTest, inputs]);
-    let ys = tf.tensor2d(io[1], [chartsToTest, outputs]);
+    let xs = tf.tensor2d(io[0], [chartsAmount, inputs]);
+    let ys = tf.tensor2d(io[1], [chartsAmount, outputs]);
 
-    for(let i = 0; i < chartsToTest; i++){
+    for(let i = 0; i < chartsAmount; i++){
       let expectedOutput = io[1][i];
       for(let j = 0; j < outputs; j++){
-        expectedOutput[j] = expectedOutput[j] / chart[0].priceMultiplier + chart[0].minPrice;
-      }
-      if(expectedOutput[3] > expectedOutput[0]){ // If close price is higher than the open price
-        expectedUp++;
-      }else if(expectedOutput[3] < expectedOutput[0]){ // If close price is lower
-        expectedDown++;
+        expectedOutput[j] = expectedOutput[j];
       }
 
       let predictedOutput = this.model.predict(tf.tensor2d(io[0][0], [1, inputs])).dataSync();
       for(let j = 0; j < outputs; j++){
-        predictedOutput[j] = predictedOutput[j] / chart[0].priceMultiplier + chart[0].minPrice;
+        predictedOutput[j] = predictedOutput[j];
       }
-      if(predictedOutput[3] > predictedOutput[0]){
-        predictedUp++;
-      }else if(predictedOutput[3] < predictedOutput[0]){
-        predictedDown++;
+
+      if(i == 0){ // If this is the first chart from the ones being tested, also print the data
+        this.printTestData(expectedOutput, predictedOutput);
+        this.drawTestPrediction(predictedOutput);
+      }
+
+      if(expectedOutput[3] > expectedOutput[0] && predictedOutput[3] > predictedOutput[0]){ // If close price is higher than the open price
+        upDownAccuracySum += 1;
+      }else if(expectedOutput[3] < expectedOutput[0] && predictedOutput[3] < predictedOutput[0]){ // If close price is lower
+        upDownAccuracySum += 1;
+      }else if(expectedOutput[3] == expectedOutput[0] && predictedOutput[3] == predictedOutput[0]){ // If close price is the same
+        upDownAccuracySum += 1;
       }
 
       for(let j = 1; j < 4; j++){
@@ -117,33 +117,49 @@ function Ai(){
         }
         accuracySum += singlePriceAccuracy;
       }
-
     }
     xs.dispose();
     ys.dispose();
 
-    console.log("Expected red candle:   " + expectedDown);
-    console.log("Expected green candle: " + expectedUp);
-
-    let upAccuracy = expectedUp / predictedUp;
-    let downAccuracy = expectedDown / predictedDown;
-    if(upAccuracy > 1){
-      upAccuracy = 1 / upAccuracy;
-    }
-    if(downAccuracy > 1){
-      downAccuracy = 1 / downAccuracy;
-    }
-    upDownAccuracy = (((upAccuracy + downAccuracy) / 2) * 100).toFixed(2);
-    //SHOULD BE CALCULATED DIFFERENTLY
-    avgAccuracy = ((accuracySum / (chartsToTest * 3)) * 100).toFixed(2); // * 3 because we measure accuracy of predicting candle close, high and low
+    upDownAccuracy = ((upDownAccuracySum / chartsAmount) * 100).toFixed(8);
+    avgAccuracy = ((accuracySum / (chartsAmount * 3)) * 100).toFixed(8); // * 3 because we measure accuracy of predicting candle close, high and low
 
     testing = 0;
   }
 
+  this.drawTestPrediction = function(predictedOutput){
+    let candleIndex = historyLen + futureLen;
+    let data = [];
+    data[0] = 0;
+    for(let i = 0; i < 4; i++){
+      data[i + 1] = predictedOutput[i] / chart[0].priceMultiplier + chart[0].minPrice;
+    }
+    chart[0].addNewCandle(data);
+    chart[0].candle[candleIndex].color = [0, 0, 255];
+  }
+
+  this.printTestData = function(expectedOutput, predictedOutput){
+    console.log("\tExpected output for chart with index = 0:");
+    for(let i = 0; i < 4; i++){
+      console.log("\t\t" + (expectedOutput[i] / chart[0].priceMultiplier + chart[0].minPrice));
+    }
+    console.log("\tPredicted output:");
+    for(let i = 0; i < 4; i++){
+      console.log("\t\t" + (predictedOutput[i] / chart[0].priceMultiplier + chart[0].minPrice));
+    }
+  }
+
   this.train = async function(){
     while(training && (cycles == 0 || (cycles - cyclesTrained) != 0)){
+      console.log("================================================================================");
+      console.log("New training cycle starting");
       console.log("Generating " + chartsPerEpoch + " new data");
       let io = await this.getNewTrainingData(chartsPerEpoch); // Inputs and outputs of the neural net (almost. They need to be converted to tensors)
+
+      console.log("Testing with one sample. The blue candle on the chart is AI's prediction of the last candle");
+      let predictedOutput = this.model.predict(tf.tensor2d(io[0][0], [1, inputs])).dataSync();
+      this.drawTestPrediction(predictedOutput);
+      this.printTestData(io[1][0], predictedOutput);
 
       console.log("Training with new data started");
       let xs = tf.tensor2d(io[0], [chartsPerEpoch, inputs]);
@@ -152,16 +168,6 @@ function Ai(){
       xs.dispose();
       ys.dispose();
 
-      console.log("Testing the AI on chart with index = 0:");
-      console.log("\tExpected output:");
-      for(let i = 0; i < 4; i++){
-        console.log("\t\t" + (io[1][0][i] / chart[0].priceMultiplier + chart[0].minPrice));
-      }
-      console.log("\tPredicted output:");
-      let predictedOutput = this.model.predict(tf.tensor2d(io[0][0], [1, inputs])).dataSync();
-      for(let i = 0; i < 4; i++){
-        console.log("\t\t" + (predictedOutput[i] / chart[0].priceMultiplier + chart[0].minPrice));
-      }
 
       if(cycles - cyclesTrained != 0){
         cyclesTrained++;
@@ -180,7 +186,7 @@ function Ai(){
       let outputData = [];
       for(let j = 0; j < historyLen; j++){
         for(let k = 0; k < 5; k++){ // We give the nn 5 numbers per candle
-          inputData[j * 5 + k] = chart[i].candle[j].normData[k]
+          inputData[j * 5 + k] = chart[i].candle[j].normData[k];
         }
       }
       for(let j = 0; j < 4; j++){

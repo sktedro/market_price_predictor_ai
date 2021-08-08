@@ -102,13 +102,18 @@ function Chart(){
     }
   }
 
+  this.addNewCandle = function(data){
+    this.candle[this.candle.length] = new Candle();
+    this.candle[this.candle.length - 1].data = data;
+  }
+
   this.createVisual = function(){
     this.visual = new Visual();
   }
 
   function Visual(){
     // Settings
-    const lineColor = 150;
+    const lineColor = 220;
     const cursorTextColor = [0, 0, 150];
     const minCandleHeight = 2; // Minimal height of one candle
     const priceLegendItems = 5; // How many horizontal lines (prices) to draw as the price legend
@@ -150,6 +155,9 @@ function Chart(){
           chart.candle[i].color = [255, 0, 0];
         }else{
           chart.candle[i].color = [255, 255, 255];
+        }
+        if(i == 101){
+          console.log(chart.candle[101].color);
         }
       }
     }
