@@ -37,20 +37,23 @@ let allData = [[[]]]; // All loaded data in one 3D array
 
 /*
  * TODO:
- * Button to generate new chart
- * button to predict actual chart
+ * Button to generate and test one single chart
  */
 
 let drawChartToggle = 1;
+
 let training = 0;
-let testing = 0;
+let startTraining = 0;
+
 let cycles = 0;
+let cyclesTrained = 0;
+
 let epochs = 10;
-let actEpoch;
 let chartsPerEpoch = 10000;
+
+let testing = 0;
 let chartsToTest = 1000;
 
-let trainingHelper = 0;
 
 let chartNames = [];
 
@@ -75,6 +78,7 @@ function setup(){
     getNewCharts(1);
     // Create a new AI with a new model
     ai = new Ai();
+    ai.newModel();
   }
 
   // Draw the buttons and inputs
@@ -89,11 +93,13 @@ function draw(){
   // Draw the info text
   drawInfo();
 
-  fill(0);
-
-  if(trainingHelper){
-    trainingHelper = 0;
+  if(startTraining){
+    startTraining = 0;
     ai.train();
+  }
+
+  if(testing){
+    ai.test();
   }
 
   if(drawChartToggle){

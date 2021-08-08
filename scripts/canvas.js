@@ -80,8 +80,8 @@ function drawInfo(){
   }
   // Line 3
   fill(0);
-  drawText(3, 1, "Up or down prediction accuracy: " + upDownAccuracy + "%");
-  drawText(3, 3, "Average prediction accuracy: " + avgAccuracy + "%");
+  drawText(3, 1, "Up or down prediction accuracy (last testing): " + upDownAccuracy + "%");
+  drawText(3, 3, "Average prediction accuracy of candle's close, high and low (last testing): " + avgAccuracy + "%");
 }
 
 function drawText(row, col, textToDraw){
@@ -91,28 +91,28 @@ function drawText(row, col, textToDraw){
 
 function trainButtonFn(){
   training = !training;
-  trainingHelper = 1;
+  startTraining = 1;
 }
 
 function cyclesInputFn(){
-  cycles = this.value();
+  cycles = parseFloat(this.value());
 }
 
 function epochsInputFn(){
-  epochs = this.value();
+  epochs = parseFloat(this.value());
 }
 
 function chartsPerEpochInputFn(){
-  chartsPerEpoch = this.value();
+  chartsPerEpoch = parseFloat(this.value());
 }
 
 async function saveBrowserButtonFn(){
-  const saveResult = await model.save('downloads://model');
+  const saveResult = await ai.model.save('localstorage://model');
   console.log("Result of the save process: ");
   console.log(saveResult);
 }
 async function saveLocalButtonFn(){
-  const saveResult = await model.save('downloads://model');
+  const saveResult = await ai.model.save('downloads://model');
   console.log("Result of the save process: ");
   console.log(saveResult);
 }
@@ -122,14 +122,18 @@ function testButtonFn(){
 }
 
 function testInputFn(){
-  chartsToTest = this.value();
+  chartsToTest = parseFloat(this.value());
 }
 
 async function loadBrowserButtonFn(){
-  model = await tf.loadLayersModel('http://localhost:8080/model.json');
+  ai.model = await tf.loadLayersModel('localstorage://model');
+  ai.compileModel();
+  console.log("Model saved in the browser was loaded");
 }
 async function loadLocalButtonFn(){
-  model = await tf.loadLayersModel('http://localhost:8080/model.json');
+  ai.model = await tf.loadLayersModel('http://localhost:8080/model.json');
+  ai.compileModel();
+  console.log("Model saved in the browser was loaded");
 }
 
 function drawChartButtonFn(){

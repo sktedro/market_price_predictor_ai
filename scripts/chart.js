@@ -21,7 +21,7 @@ function Chart(){
     this.row; // Index of a row in a file
     this.time; // Date&time
     this.data; // Data from a file converted to an array
-    this.normData = []; // Contains four prices and volume all normalized (within 0 and 1)
+    this.normData = []; // Contains four prices and a volume (all normalized (within 0 and 1))
 
     this.height;
     this.leftTopCoords; // [x, y]
