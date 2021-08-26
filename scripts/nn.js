@@ -1,28 +1,47 @@
-const historyLen = 100; // How many previous candles to give to the NN (does not include the predicted candle)
-const futureLen = 1; // How many candles should the NN predict
+// How many previous candles are needed to calculate all needed data (for example, for EMA200 we need 200 candles...)
+// Needs to be at least historyLen + 1
+const neededHistoryLen = 200;
+// How many previous candles to give to the NN (does not include the predicted candle)
+// TODO doesn't need to be that high... 50 would definitely suffice
+const historyLen = 100;
+// How many candles should the NN predict
+const futureLen = 1;
 
 function Ai(){
   /*
   * Inputs (all values should be normalized - range within 0 and 1):
   *
+  * TODO this probably needs to change. I could give it:
+  *   Percentual change of a candle from the previous - high, low and close
+  *     0 would be -100%, 0.5 would be 0%, 1.0 would be 100% or something like
+  *     that? Or just map min and max of the chart to 0 and 1 and then map the
+  *     nn's output back?
+  *   And volume, of course -- maybe only for the last candle? (last candle
+  *   volume / max volume of the chart)
   * For every candle:
-  *   Open price
+  *   Open price -- is this needed??
   *   High price
   *   Low price
   *   Close price
   *   Volume
+  *
+  * -- To implement:
   * Time (minutes from 00:00) - for example 01:30 = 1*60 + 30
   * Day of the week
-  * Timeframe (interval of candles) in minutes?
-  * Volatility (average candle % change)?
+  * Timeframe (interval of candles) - I guess it could be 0.1 for 1m, 0.2 for
+  *   5m, 0.3 for 15m, 0.4 for 30m, 0.5 for 1h, 0.6 for 4h, 0.7 for 1d or
+  *   something like that
+  * Volatility - average candle % change of candle open and close
+  * Volatility - average candle % change of candle low and high
   * Indicators:?
-  *   MA
+  *   EMA
   *   RSI
   *   STOCH
-  *   OBV
+  *   OBV?
   *   ...
   */
-  const inputs = historyLen * 5;
+  // const inputs = historyLen * 5;
+  const inputs = emaTimeframes.length * emaSamples + rsiTimeframes.length + candleSamples * 5;
 
   /*
   * Outputs:
@@ -30,6 +49,19 @@ function Ai(){
   * Close price
   * High price
   * Low price
+  *
+  * -- To implement:
+  * Candle color (green or red or 'black')
+  *
+  * Or I could just ask it to give me a prediction of percental change of the
+  * next X candles (like, first future candle will go up 3%, second future
+  * candle will go down 6% and something like that)
+  * Or I could just ask it: buy?
+  *   And it would be right to buy if I made for example more than 2% profit in
+  *   X next candles, otherwise it would be a bad decision
+  * Guess the best idea would be to make it predict change in % for next
+  * 'futureLen' candles in relation to the last known candle (three times? For
+  * candle low, high and close?)
   */
 
   const outputs = 4;
@@ -184,15 +216,28 @@ function Ai(){
     for(let i = 0; i < amount; i++){
       let inputData = [];
       let outputData = [];
-      for(let j = 0; j < historyLen; j++){
+
+      // TODO
+      inputData = chart[i].rsi.concat(chart[i].ema);
+      // inputData = chart[i].ema;
+      /*
+       * for(let j = 0; j < historyLen; j++){
+       *   for(let k = 0; k < 5; k++){ // We give the nn 5 numbers per candle
+       *     inputData[j * 5 + k] = chart[i].candle[j].normData[k];
+       *   }
+       * }
+       */
+      for(let j = historyLen - candleSamples; j < historyLen; j++){
         for(let k = 0; k < 5; k++){ // We give the nn 5 numbers per candle
-          inputData[j * 5 + k] = chart[i].candle[j].normData[k];
+          inputData.push(chart[i].candle[j].normData[k]);
         }
       }
+
       for(let j = 0; j < 4; j++){
         outputData[j] = chart[i].candle[historyLen].normData[j];
       }
       xs[i] = inputData;
+      // console.log(xs[i]);
       ys[i] = outputData;
     }
     return [xs, ys];

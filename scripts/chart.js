@@ -14,6 +14,8 @@ function Chart(){
 
   // Per chart objects
   this.candle = [];
+  this.ema = [];
+  this.rsi = [];
   this.visual;
 
   // A candle object
@@ -46,12 +48,28 @@ function Chart(){
     }
     // Pick a random line from the file
     this.candle[candleToPredict].row = Math.round(getRandomBetween(historyLen + 1, allData[this.id].length - futureLen));
+    // this.candle[candleToPredict].row = allData[this.id].length - historyLen - futureLen - 38;
     // Initialize the candles
     this.getCandleData(candleToPredict);
     // Get min/max price of the chart and max volume
     this.getMinMax();
     // Calculate the multipliers
     this.getPriceAndVolMultipliers();
+
+    // Get indicator data
+    for(let i = 0; i < emaTimeframes.length; i++){
+      for(let j = 0; j < emaSamples; j++){
+        this.ema.push(ema(this.candle, emaTimeframes[i], this.candle.length - emaSamples + j));
+      }
+    }
+    for(let i = 0; i < rsiTimeframes.length; i++){
+      this.rsi.push(rsi(this.candle, rsiTimeframes[i], this.candle.length - 1));
+    }
+    for(let i = 0; i < 25; i++){
+      // console.log(ema(this.candle, 54, this.candle.length - 1 - i));
+      // console.log(rsi(this.candle, 14, this.candle.length - 1 - i));
+    }
+
     // Normalize the candle data
     this.normalizeData();
   }
@@ -100,6 +118,13 @@ function Chart(){
       }
       this.candle[i].normData[cols.volume - 1] = this.candle[i].data[cols.volume] * this.volMultiplier;
     }
+    for(let i = 0; i < this.rsi.length; i++){
+      this.rsi[i] /= 100;
+    }
+    for(let i = 0; i < this.ema.length; i++){
+      this.ema[i] = (this.ema[i] - this.minPrice) * this.priceMultiplier;
+    }
+    // console.log(this.ema);
   }
 
   this.addNewCandle = function(data){

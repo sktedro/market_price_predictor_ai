@@ -37,7 +37,7 @@ let allData = [[[]]]; // All loaded data in one 3D array
 
 /*
  * TODO:
- * Button to generate and test one single chart
+ * Automatically test after a training cycle
  */
 
 let drawChartToggle = 1;
@@ -48,7 +48,7 @@ let startTraining = 0;
 let cycles = 0;
 let cyclesTrained = 0;
 
-let epochs = 10;
+let epochs = 50;
 let chartsPerEpoch = 10000;
 
 let testing = 0;
