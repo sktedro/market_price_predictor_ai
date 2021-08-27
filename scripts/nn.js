@@ -24,6 +24,9 @@ function Ai(){
   *   Low price
   *   Close price
   *   Volume
+  * Indicators:
+  *   EMA
+  *   RSI
   *
   * -- To implement:
   * Time (minutes from 00:00) - for example 01:30 = 1*60 + 30
@@ -33,38 +36,16 @@ function Ai(){
   *   something like that
   * Volatility - average candle % change of candle open and close
   * Volatility - average candle % change of candle low and high
-  * Indicators:?
-  *   EMA
-  *   RSI
-  *   STOCH
-  *   OBV?
-  *   ...
+  * ...
   */
-  // const inputs = historyLen * 5;
   const inputs = emaTimeframes.length * emaSamples + rsiTimeframes.length + candleSamples * 5;
 
   /*
   * Outputs:
-  * Open price
-  * Close price
-  * High price
-  * Low price
-  *
-  * -- To implement:
-  * Candle color (green or red or 'black')
-  *
-  * Or I could just ask it to give me a prediction of percental change of the
-  * next X candles (like, first future candle will go up 3%, second future
-  * candle will go down 6% and something like that)
-  * Or I could just ask it: buy?
-  *   And it would be right to buy if I made for example more than 2% profit in
-  *   X next candles, otherwise it would be a bad decision
-  * Guess the best idea would be to make it predict change in % for next
-  * 'futureLen' candles in relation to the last known candle (three times? For
-  * candle low, high and close?)
+  *   Percent change of the future candle relative to the last historical
+  *   candle
   */
 
-  // const outputs = 4;
   const outputs = 1;
 
   this.model;
@@ -120,55 +101,27 @@ function Ai(){
     let ys = tf.tensor2d(io[1], [chartsAmount, outputs]);
 
     for(let i = 0; i < chartsAmount; i++){
-      /*
-       * let expectedOutput = io[1][i];
-       * for(let j = 0; j < outputs; j++){
-       *   expectedOutput[j] = expectedOutput[j];
-       * }
-       */
-      
+      // Expected output is the percent change of the future candle's close
+      // relative to the last historical candle's close
+      // Note: This is copied from function getNewTrainingData
       let lastClose = chart[i].candle[historyLen - 1].data[cols.close]; // Close value of last historical candle
       let futureClose = chart[i].candle[historyLen].data[cols.close]; // Close value of the future candle
-      let change = (futureClose - lastClose) / lastClose; // Percentage change of the price (but divided by 100 - 10% is 0.1)
-      change += 0.5; // We don't want the output to be negative
+      let expectedOutput = (futureClose - lastClose) / lastClose; // Percentage change of the price (but divided by 100: 10% = 0.1)
+      expectedOutput += 0.5; // We don't want the output to be negative
       // -50% will be equal to 0, 50% will be equal to 1. This probably won't work well. Something like inverse tangent function would be nice
-      let expectedOutput = change > 0.5 ? 1 : 0;
 
       let predictedOutput = this.model.predict(tf.tensor2d(io[0][0], [1, inputs])).dataSync();
-      /* WTF
-       * for(let j = 0; j < outputs; j++){
-       *   predictedOutput[j] = predictedOutput[j];
-       * }
-       */
 
       if(i == 0){ // If this is the first chart from the ones being tested, also print the data
         this.printTestData(expectedOutput, predictedOutput);
-        /*
-         * this.drawTestPrediction(predictedOutput);
-         */
+        this.drawTestPrediction(predictedOutput);
       }
 
-      /*
-       * if(expectedOutput[3] > expectedOutput[0] && predictedOutput[3] > predictedOutput[0]){ // If close price is higher than the open price
-       *   upDownAccuracySum += 1;
-       * }else if(expectedOutput[3] < expectedOutput[0] && predictedOutput[3] < predictedOutput[0]){ // If close price is lower
-       *   upDownAccuracySum += 1;
-       * }else if(expectedOutput[3] == expectedOutput[0] && predictedOutput[3] == predictedOutput[0]){ // If close price is the same
-       *   upDownAccuracySum += 1;
-       * }
-       */
       if(expectedOutput >= 0.5 && predictedOutput >= 0.5 || expectedOutput <= 0.5 && predictedOutput <= 0.5){
         upDownAccuracySum += 1;
       }
 
-      /*
-       * for(let j = 1; j < 4; j++){
-       *   let expectedPrice = expectedOutput[j] / chart[i].priceMultiplier + chart[i].minPrice;
-       *   let predictedPrice = predictedOutput[j] / chart[i].priceMultiplier + chart[i].minPrice;
-       *   accuracySum += Math.abs((1 / (expectedPrice / predictedPrice)) - 1);
-       * }
-       */
-      accuracySum += Math.abs((1 / (expectedOutput[0] / predictedOutput[0])) - 1);
+      accuracySum += Math.abs((1 / (expectedOutput / predictedOutput)) - 1);
     }
     xs.dispose();
     ys.dispose();
@@ -176,7 +129,6 @@ function Ai(){
     upDownAccuracy = ((upDownAccuracySum / chartsAmount) * 100).toFixed(8);
 
     // SHOULD BE CALCULATED DIFFERENTLY?
-    // avgAccuracy = ((accuracySum / (chartsAmount * 3)) * 100).toFixed(8); // * 3 because we measure accuracy of predicting candle close, high and low
     avgAccuracy = ((accuracySum / chartsAmount) * 100).toFixed(8);
 
     testing = 0;
@@ -186,24 +138,15 @@ function Ai(){
     let candleIndex = historyLen + futureLen;
     let data = [];
     data[0] = 0;
-    for(let i = 0; i < 4; i++){
-      data[i + 1] = predictedOutput[i] / chart[0].priceMultiplier + chart[0].minPrice;
-    }
+    data[cols.open] = chart[0].candle[historyLen - 1].data[cols.close]; // The predicted candle's open price will be last historical candle's close price
+    data[cols.low] = data[cols.high] = data[cols.open]; // We don't need the wick
+    data[cols.close] = data[cols.open] * (predictedOutput[0] + 0.5); // Convert the predicted output to a multiplier and multiply the open price by that
     chart[0].addNewCandle(data);
     chart[0].candle[candleIndex].color = [0, 0, 255];
   }
 
   this.printTestData = function(expectedOutput, predictedOutput){
     console.log("\tExpected output for chart with index = 0:");
-    /*
-     * for(let i = 0; i < 4; i++){
-     *   console.log("\t\t" + (expectedOutput[i] / chart[0].priceMultiplier + chart[0].minPrice));
-     * }
-     * console.log("\tPredicted output:");
-     * for(let i = 0; i < 4; i++){
-     *   console.log("\t\t" + (predictedOutput[i] / chart[0].priceMultiplier + chart[0].minPrice));
-     * }
-     */
     console.log("\t\t" + (expectedOutput));
     console.log("\tPredicted output:");
     console.log("\t\t" + (predictedOutput));
@@ -218,7 +161,7 @@ function Ai(){
 
       console.log("Testing with one sample. The blue candle on the chart is AI's prediction of the last candle");
       let predictedOutput = this.model.predict(tf.tensor2d(io[0][0], [1, inputs])).dataSync();
-      // this.drawTestPrediction(predictedOutput);
+      this.drawTestPrediction(predictedOutput);
       this.printTestData(io[1][0], predictedOutput);
 
       console.log("Training with new data started");
@@ -243,41 +186,22 @@ function Ai(){
     let ys = [];
     for(let i = 0; i < amount; i++){
       let inputData = [];
-      // let outputData = [];
-
-      // TODO
-      inputData = chart[i].rsi.concat(chart[i].ema);
-      // inputData = chart[i].ema;
-      /*
-       * for(let j = 0; j < historyLen; j++){
-       *   for(let k = 0; k < 5; k++){ // We give the nn 5 numbers per candle
-       *     inputData[j * 5 + k] = chart[i].candle[j].normData[k];
-       *   }
-       * }
-       */
+      inputData = chart[i].rsi.concat(chart[i].ema); // The RSI and EMA are one of the inputs
       for(let j = historyLen - candleSamples; j < historyLen; j++){
         for(let k = 0; k < 5; k++){ // We give the nn 5 numbers per candle
-          inputData.push(chart[i].candle[j].normData[k]);
+          inputData.push(chart[i].candle[j].normData[k]); // Also give some historical candles as inputs
         }
       }
 
-      /* The last candle's prices (open, high, low, close) are the output
-       * for(let j = 0; j < 4; j++){
-       *   outputData[j] = chart[i].candle[historyLen].normData[j];
-       * }
-       */
-
+      // Expected output is the percent change of the future candle's close
+      // relative to the last historical candle's close
       let lastClose = chart[i].candle[historyLen - 1].data[cols.close]; // Close value of last historical candle
       let futureClose = chart[i].candle[historyLen].data[cols.close]; // Close value of the future candle
-      // let lastHigh = chart[i].candle[historyLen - 1].normData[cols.high];
-      // let futureHigh = chart[i].candle[historyLen].normData[cols.high];
-      let change = (futureClose - lastClose) / lastClose; // Percentage change of the price (but divided by 100 - 10% is 0.1)
-      change += 0.5; // We don't want the output to be negative
+      let outputData = (futureClose - lastClose) / lastClose; // Percentage change of the price (but divided by 100: 10% = 0.1)
+      outputData += 0.5; // We don't want the output to be negative
       // -50% will be equal to 0, 50% will be equal to 1. This probably won't work well. Something like inverse tangent function would be nice
-      outputData = change > 0.5 ? 1 : 0;
-      
+
       xs[i] = inputData;
-      // console.log(xs[i]);
       ys[i] = outputData;
     }
     return [xs, ys];

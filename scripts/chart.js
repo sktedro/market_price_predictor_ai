@@ -124,7 +124,6 @@ function Chart(){
     for(let i = 0; i < this.ema.length; i++){
       this.ema[i] = (this.ema[i] - this.minPrice) * this.priceMultiplier;
     }
-    // console.log(this.ema);
   }
 
   this.addNewCandle = function(data){
