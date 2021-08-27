@@ -33,7 +33,7 @@ This is actually not that bad, but I can't call it a success.
 
 # Screenshots
 
-![Alt text](./img/screenshot.jpg?raw=true "Screenshot of the training process")
+![Alt text](./img/screenshot.png?raw=true "Screenshot of the training process")
 
 # Data
 
