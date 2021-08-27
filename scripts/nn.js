@@ -64,10 +64,11 @@ function Ai(){
   * candle low, high and close?)
   */
 
-  const outputs = 4;
+  // const outputs = 4;
+  const outputs = 1;
 
   this.model;
-  this.learningRate = 0.0001;
+  this.learningRate = 0.01;
 
   this.newModel = function(){
     // Initialise the model as a sequential neural network
@@ -119,34 +120,54 @@ function Ai(){
     let ys = tf.tensor2d(io[1], [chartsAmount, outputs]);
 
     for(let i = 0; i < chartsAmount; i++){
-      let expectedOutput = io[1][i];
-      for(let j = 0; j < outputs; j++){
-        expectedOutput[j] = expectedOutput[j];
-      }
+      /*
+       * let expectedOutput = io[1][i];
+       * for(let j = 0; j < outputs; j++){
+       *   expectedOutput[j] = expectedOutput[j];
+       * }
+       */
+      
+      let lastClose = chart[i].candle[historyLen - 1].data[cols.close]; // Close value of last historical candle
+      let futureClose = chart[i].candle[historyLen].data[cols.close]; // Close value of the future candle
+      let expectedOutput = (futureClose - lastClose) / lastClose; // Percentage change of the price (but divided by 100 - 10% is 0.1)
+      expectedOutput += 0.5; // We don't want the output to be negative
+      // -50% will be equal to 0, 50% will be equal to 1. This probably won't work well. Something like inverse tangent function would be nice
 
       let predictedOutput = this.model.predict(tf.tensor2d(io[0][0], [1, inputs])).dataSync();
-      for(let j = 0; j < outputs; j++){
-        predictedOutput[j] = predictedOutput[j];
-      }
+      /* WTF
+       * for(let j = 0; j < outputs; j++){
+       *   predictedOutput[j] = predictedOutput[j];
+       * }
+       */
 
       if(i == 0){ // If this is the first chart from the ones being tested, also print the data
         this.printTestData(expectedOutput, predictedOutput);
-        this.drawTestPrediction(predictedOutput);
+        /*
+         * this.drawTestPrediction(predictedOutput);
+         */
       }
 
-      if(expectedOutput[3] > expectedOutput[0] && predictedOutput[3] > predictedOutput[0]){ // If close price is higher than the open price
-        upDownAccuracySum += 1;
-      }else if(expectedOutput[3] < expectedOutput[0] && predictedOutput[3] < predictedOutput[0]){ // If close price is lower
-        upDownAccuracySum += 1;
-      }else if(expectedOutput[3] == expectedOutput[0] && predictedOutput[3] == predictedOutput[0]){ // If close price is the same
+      /*
+       * if(expectedOutput[3] > expectedOutput[0] && predictedOutput[3] > predictedOutput[0]){ // If close price is higher than the open price
+       *   upDownAccuracySum += 1;
+       * }else if(expectedOutput[3] < expectedOutput[0] && predictedOutput[3] < predictedOutput[0]){ // If close price is lower
+       *   upDownAccuracySum += 1;
+       * }else if(expectedOutput[3] == expectedOutput[0] && predictedOutput[3] == predictedOutput[0]){ // If close price is the same
+       *   upDownAccuracySum += 1;
+       * }
+       */
+      if(expectedOutput >= 0.5 && predictedOutput >= 0.5 || expectedOutput <= 0.5 && predictedOutput <= 0.5){
         upDownAccuracySum += 1;
       }
 
-      for(let j = 1; j < 4; j++){
-        let expectedPrice = expectedOutput[j] / chart[i].priceMultiplier + chart[i].minPrice;
-        let predictedPrice = predictedOutput[j] / chart[i].priceMultiplier + chart[i].minPrice;
-        accuracySum += Math.abs((1 / (expectedPrice / predictedPrice)) - 1);
-      }
+      /*
+       * for(let j = 1; j < 4; j++){
+       *   let expectedPrice = expectedOutput[j] / chart[i].priceMultiplier + chart[i].minPrice;
+       *   let predictedPrice = predictedOutput[j] / chart[i].priceMultiplier + chart[i].minPrice;
+       *   accuracySum += Math.abs((1 / (expectedPrice / predictedPrice)) - 1);
+       * }
+       */
+      accuracySum += Math.abs((1 / (expectedOutput / predictedOutput)) - 1);
     }
     xs.dispose();
     ys.dispose();
@@ -154,7 +175,8 @@ function Ai(){
     upDownAccuracy = ((upDownAccuracySum / chartsAmount) * 100).toFixed(8);
 
     // SHOULD BE CALCULATED DIFFERENTLY?
-    avgAccuracy = ((accuracySum / (chartsAmount * 3)) * 100).toFixed(8); // * 3 because we measure accuracy of predicting candle close, high and low
+    // avgAccuracy = ((accuracySum / (chartsAmount * 3)) * 100).toFixed(8); // * 3 because we measure accuracy of predicting candle close, high and low
+    avgAccuracy = ((accuracySum / chartsAmount) * 100).toFixed(8);
 
     testing = 0;
   }
@@ -172,13 +194,18 @@ function Ai(){
 
   this.printTestData = function(expectedOutput, predictedOutput){
     console.log("\tExpected output for chart with index = 0:");
-    for(let i = 0; i < 4; i++){
-      console.log("\t\t" + (expectedOutput[i] / chart[0].priceMultiplier + chart[0].minPrice));
-    }
+    /*
+     * for(let i = 0; i < 4; i++){
+     *   console.log("\t\t" + (expectedOutput[i] / chart[0].priceMultiplier + chart[0].minPrice));
+     * }
+     * console.log("\tPredicted output:");
+     * for(let i = 0; i < 4; i++){
+     *   console.log("\t\t" + (predictedOutput[i] / chart[0].priceMultiplier + chart[0].minPrice));
+     * }
+     */
+    console.log("\t\t" + (expectedOutput));
     console.log("\tPredicted output:");
-    for(let i = 0; i < 4; i++){
-      console.log("\t\t" + (predictedOutput[i] / chart[0].priceMultiplier + chart[0].minPrice));
-    }
+    console.log("\t\t" + (predictedOutput));
   }
 
   this.train = async function(){
@@ -190,7 +217,7 @@ function Ai(){
 
       console.log("Testing with one sample. The blue candle on the chart is AI's prediction of the last candle");
       let predictedOutput = this.model.predict(tf.tensor2d(io[0][0], [1, inputs])).dataSync();
-      this.drawTestPrediction(predictedOutput);
+      // this.drawTestPrediction(predictedOutput);
       this.printTestData(io[1][0], predictedOutput);
 
       console.log("Training with new data started");
@@ -215,7 +242,7 @@ function Ai(){
     let ys = [];
     for(let i = 0; i < amount; i++){
       let inputData = [];
-      let outputData = [];
+      // let outputData = [];
 
       // TODO
       inputData = chart[i].rsi.concat(chart[i].ema);
@@ -233,9 +260,20 @@ function Ai(){
         }
       }
 
-      for(let j = 0; j < 4; j++){
-        outputData[j] = chart[i].candle[historyLen].normData[j];
-      }
+      /* The last candle's prices (open, high, low, close) are the output
+       * for(let j = 0; j < 4; j++){
+       *   outputData[j] = chart[i].candle[historyLen].normData[j];
+       * }
+       */
+
+      let lastClose = chart[i].candle[historyLen - 1].data[cols.close]; // Close value of last historical candle
+      let futureClose = chart[i].candle[historyLen].data[cols.close]; // Close value of the future candle
+      // let lastHigh = chart[i].candle[historyLen - 1].normData[cols.high];
+      // let futureHigh = chart[i].candle[historyLen].normData[cols.high];
+      let outputData = (futureClose - lastClose) / lastClose; // Percentage change of the price (but divided by 100 - 10% is 0.1)
+      outputData += 0.5; // We don't want the output to be negative
+      // -50% will be equal to 0, 50% will be equal to 1. This probably won't work well. Something like inverse tangent function would be nice
+      
       xs[i] = inputData;
       // console.log(xs[i]);
       ys[i] = outputData;
