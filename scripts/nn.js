@@ -65,7 +65,7 @@ function Ai(){
   */
 
   // const outputs = 4;
-  const outputs = 2;
+  const outputs = 1;
 
   this.model;
   this.learningRate = 0.01;
@@ -129,11 +129,10 @@ function Ai(){
       
       let lastClose = chart[i].candle[historyLen - 1].data[cols.close]; // Close value of last historical candle
       let futureClose = chart[i].candle[historyLen].data[cols.close]; // Close value of the future candle
-      let expectedOutput = [];
-      expectedOutput[0] = (futureClose - lastClose) / lastClose; // Percentage change of the price (but divided by 100 - 10% is 0.1)
-      expectedOutput[0] += 0.5; // We don't want the output to be negative
+      let change = (futureClose - lastClose) / lastClose; // Percentage change of the price (but divided by 100 - 10% is 0.1)
+      change += 0.5; // We don't want the output to be negative
       // -50% will be equal to 0, 50% will be equal to 1. This probably won't work well. Something like inverse tangent function would be nice
-      expectedOutput[1] = expectedOutput[0] > 0.5 ? 1 : 0;
+      let expectedOutput = change > 0.5 ? 1 : 0;
 
       let predictedOutput = this.model.predict(tf.tensor2d(io[0][0], [1, inputs])).dataSync();
       /* WTF
@@ -158,7 +157,7 @@ function Ai(){
        *   upDownAccuracySum += 1;
        * }
        */
-      if(expectedOutput[1] >= 0.5 && predictedOutput[1] >= 0.5 || expectedOutput[1] <= 0.5 && predictedOutput[1] <= 0.5){
+      if(expectedOutput >= 0.5 && predictedOutput >= 0.5 || expectedOutput <= 0.5 && predictedOutput <= 0.5){
         upDownAccuracySum += 1;
       }
 
@@ -272,11 +271,10 @@ function Ai(){
       let futureClose = chart[i].candle[historyLen].data[cols.close]; // Close value of the future candle
       // let lastHigh = chart[i].candle[historyLen - 1].normData[cols.high];
       // let futureHigh = chart[i].candle[historyLen].normData[cols.high];
-      let outputData = [];
-      outputData[0] = (futureClose - lastClose) / lastClose; // Percentage change of the price (but divided by 100 - 10% is 0.1)
-      outputData[0] += 0.5; // We don't want the output to be negative
+      let change = (futureClose - lastClose) / lastClose; // Percentage change of the price (but divided by 100 - 10% is 0.1)
+      change += 0.5; // We don't want the output to be negative
       // -50% will be equal to 0, 50% will be equal to 1. This probably won't work well. Something like inverse tangent function would be nice
-      outputData[1] = outputData[0] > 0.5 ? 1 : 0;
+      outputData = change > 0.5 ? 1 : 0;
       
       xs[i] = inputData;
       // console.log(xs[i]);
